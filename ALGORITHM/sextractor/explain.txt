@@ -1,0 +1,13 @@
+
+
+getdwarfs.sex:
+
+getobjects.param:       file required for sextractor to run. Normally contains names of parameters desired in the output catalogue, but since only the generated segmentation map is of interest and not the output catalogue, this file can be left blank.
+
+getobjects.sex:         configuration file for sextractor, wherein it is specified that a segmentation map should be outputted. The properties of the segmentation map are determined by the DETECT_THRESH and ANALYSIS_THRESH parameters.
+
+masked.fits:
+
+objects_segmap.fits:    
+
+ 

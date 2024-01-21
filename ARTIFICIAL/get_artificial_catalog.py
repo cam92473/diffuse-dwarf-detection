@@ -66,7 +66,8 @@ def r999definition(r999,b_n,n,reff):
     return 0.999*gamma(2*n) - gammainc(2*n,b_n*(r999/reff)**1/n)
 
 def get_the_r999(b_n,n,reff):
-    root = fsolve(r999definition,x0=[2*reff],args=(b_n,n,reff))
+    root = fsolve(r999definition,x0=[3*reff],args=(b_n,n,reff), full_output=True)
+    print(root)
     return root[0]
 
 def find_r999s(b_ns,ns,reffs):

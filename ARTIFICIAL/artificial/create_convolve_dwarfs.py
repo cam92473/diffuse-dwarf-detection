@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import argparse
 import time
 
-def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r99s,psfkernel,convolve,verbose):
+def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r99s,psfkernel,convolve,diagnostic_images,verbose):
 
     thetas_rad = radians(thetas+90)
     ellipticities = 1 - axisratios
@@ -52,8 +52,10 @@ def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,
         t2 = time.perf_counter()
         print(f"tray filling time: {t2-t1}")
 
-    #plt.imshow(tray)
-    #plt.show()
+    if diagnostic_images:
+        plt.imshow(np.log10(tray+1))
+        plt.title("log image of sticker-filled tray")
+        plt.show()
 
     if convolve:
         if verbose:
@@ -67,8 +69,10 @@ def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,
         print("note: not convolving")
         conv_tray = tray
     
-    #plt.imshow(conv_tray)
-    #plt.show()
+    if diagnostic_images:
+        plt.imshow(np.log10(conv_tray+1))
+        plt.title("log image of convolved tray")
+        plt.show()
 
     if verbose:
         print("adding tray to image")
@@ -78,8 +82,14 @@ def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,
         t2 = time.perf_counter()
         print(f"adding tray time: {t2-t1}")
 
-    #plt.imshow(data)
-    #plt.show()
+    if diagnostic_images:
+        fig, ax = plt.subplots()
+        logdata = np.log10(data-data.min()+1)
+        #the vmin and vmax parameters here are arbitrary
+        im = ax.imshow(logdata, vmin=1, vmax=logdata.max()*0.5)
+        cbar = fig.colorbar(im,ax=ax)
+        plt.title("log image of data after convolved tray has been placed on top")
+        plt.show()
 
     return data
 

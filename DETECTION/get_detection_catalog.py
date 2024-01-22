@@ -41,7 +41,7 @@ def create_catalog(outdir,signature,verbose):
         t2 = time.perf_counter()
         print(f"creating catalog time: {t2-t1}")
 
-def clean(outdir, signature, verbose):
+def clean_up_files(outdir, signature, verbose):
     if verbose:
         print("cleaning up unneeded files...")
         t1 = time.perf_counter()
@@ -53,10 +53,17 @@ def clean(outdir, signature, verbose):
         t2 = time.perf_counter()
         print(f"cleaning time: {t2-t1}")
 
-def get_detection_catalog(data, weight, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, clean, diagnostic_images, verbose, topdir, signature):
+def get_detection_catalog(data, weight, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, clean, diagnostic_images, verbose, completion):
     
-    outdir = Path(topdir/'OUTPUT'/signature)
-    outdir.mkdir(parents=True,exist_ok=True)
+    timestr = datetime.now().strftime("-%Y%m%d%H%M%S")
+    filenamestr = data.name.split('.')[0]
+    signature = filenamestr + timestr
+    topdir = Path.cwd().parent
+    if completion:
+        pass
+    else:
+        outdir = Path(topdir/'OUTPUT'/signature)
+        outdir.mkdir(parents=True,exist_ok=True)
     sexdir = Path(topdir/'DETECTION'/'sextractor')
     sexdir.mkdir(parents=True,exist_ok=True)
 
@@ -67,7 +74,7 @@ def get_detection_catalog(data, weight, obj_params, maxdilations, maskfunc, wind
     create_catalog(outdir, signature, verbose)
     #filter_table(outdir/'detections.catalog', sig_beneath, sig_right, verbose, outdir/'dwarf_candidates.fits')
     if clean:
-        clean(outdir, signature, verbose)
+        clean_up_files(outdir, signature, verbose)
     if verbose:
         print("finished detection algorithm")
 

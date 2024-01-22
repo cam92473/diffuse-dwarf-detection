@@ -13,28 +13,35 @@ from scipy.optimize import fsolve
 from numpy import exp, pi, log10
 
 
-def convert_arg_line_to_args(arg_line):
-    for arg in arg_line.split():
-        if not arg.strip():
-            continue
-        yield arg
-
-def getzp(filter):
-    if filter == 'u':
+def getzp(phot_filter):
+    if phot_filter == 'u':
         zp = 0
-    elif filter == 'g':
+    elif phot_filter == 'g':
         zp = 30
-    elif filter == 'r':
+    elif phot_filter == 'r':
         zp = 0
-    elif filter == 'i':
+    elif phot_filter == 'i':
         zp = 0
-    elif filter == 'z':
+    elif phot_filter == 'z':
         zp = 0
     return zp
 
+def getMsun(phot_filter):
+    if phot_filter == 'u':
+        M_sun = 5.49
+    elif phot_filter == 'g':
+        M_sun = 5.23
+    elif phot_filter == 'r':
+        M_sun = 4.53
+    elif phot_filter == 'i':
+        M_sun = 4.14
+    elif phot_filter == 'z':
+        M_sun = 4.01
+    return M_sun
+
 def restofterms(reffs,ns,b_ns,axisratios):
     # 2 pi Reff^2 e^bn n bn^-2n gamma(2n) q
-    return 2*pi*reffs**2*exp(b_ns)*ns*b_ns**(-2*ns)*gamma(2*ns)*axisratios
+    return 2*pi*reffs**2*ns*exp(b_ns)*b_ns**(-2*ns)*gamma(2*ns)*axisratios
 
 def bndefinition(b_n,n):
     #This is the REGULARIZED incomplete gamma function, hence the 1 (not gamma(2*n)). See scipy documentation
@@ -49,7 +56,6 @@ def find_bns(ns,num_dwarfs,verbose):
     if verbose:
         print("finding b_ns")
         t1 = time.perf_counter()
-    #can i not do this all at once
     for i in range(num_dwarfs):
         b_ns[i] = get_the_bn(ns[i])
     if verbose:
@@ -59,15 +65,21 @@ def find_bns(ns,num_dwarfs,verbose):
 
 def find_Ieffs(mags,reffs,ns,b_ns,axisratios,thetas,num_dwarfs,zp,verbose):
     F_tots = 10**(-0.4*(mags-zp))
+    #L_tots = 10**(-0.4*(mags-27.88-M_sun))*L_sun
     Ieffs = F_tots/restofterms(reffs,ns,b_ns,axisratios)
+    #mueffs = mags+5*log10(reffs)+2.5*log10(2*pi*exp(b_ns)*ns*b_ns**(-2*ns)*gamma(2*ns)*axisratios)
+    #print(mueffs)
+    #munought=25.11
+    #Ieffs = 10**(-0.4*(mueffs-munought))
+    #print(Ieffs)
     return Ieffs
 
 def r999definition(r999,b_n,n,reff):
-    return 0.999*gamma(2*n) - gammainc(2*n,b_n*(r999/reff)**1/n)
+    #This is the REGULARIZED incomplete gamma function, hence the 0.999 (not 0.999*gamma(2*n)). See scipy documentation
+    return 0.999 - gammainc(2*n,b_n*(r999/reff)**1/n)
 
 def get_the_r999(b_n,n,reff):
-    root = fsolve(r999definition,x0=[3*reff],args=(b_n,n,reff), full_output=True)
-    print(root)
+    root = fsolve(r999definition,x0=[3*reff],args=(b_n,n,reff))
     return root[0]
 
 def find_r999s(b_ns,ns,reffs):
@@ -75,7 +87,6 @@ def find_r999s(b_ns,ns,reffs):
     if verbose:
         print("finding r999s")
         t1 = time.perf_counter()
-    #can i not do this all at once
     for i in range(num_dwarfs):
         r999s[i] = get_the_r999(b_ns[i],ns[i],reffs[i])
     if verbose:
@@ -83,7 +94,7 @@ def find_r999s(b_ns,ns,reffs):
         print(f"finding r999s time: {t2-t1}")
     return r999s
 
-def clean(filledimage_loc, signature, verbose):
+def clean_up_files(filledimage_loc, signature, verbose):
     if verbose:
         print("cleaning up unneeded files...")
         t1 = time.perf_counter()
@@ -92,7 +103,7 @@ def clean(filledimage_loc, signature, verbose):
         t2 = time.perf_counter()
         print(f"cleaning time: {t2-t1}")
 
-def get_artificial_catalog(data, filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, clean, verbose, topdir, signature):
+def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, clean, diagnostic_images, verbose, topdir, signature):
     
     #get randomized parameters for dwarfs
     mags = uniform(mag_range[0],mag_range[1],size=num_dwarfs)
@@ -127,8 +138,10 @@ def get_artificial_catalog(data, filter, mag_range, reff_range, n_range, axisrat
     xs = np.round(x0s/windowsize).astype(int)
     ys = np.round(y0s/windowsize).astype(int)
 
-    #get filter zp based on user input, needed for determining some parameters
-    zp = getzp(filter)
+    #get zeropoint and solar luminosity based on the user-provided phot_filter
+    zp = getzp(phot_filter)
+    M_sun = getMsun(phot_filter)
+    L_sun = 3.828E26
     #also the "/pix for DECam
     res = 0.2637
 
@@ -150,8 +163,8 @@ def get_artificial_catalog(data, filter, mag_range, reff_range, n_range, axisrat
     #data1 = np.copy(data)
     #data2 = np.copy(data)
 
-    data_filled = create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,True,verbose)
-    #data_filled2 = create_convolve_dwarfs(data2,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,False,verbose)
+    data_filled = create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,True,diagnostic_images,verbose)
+    #data_filled2 = create_convolve_dwarfs(data2,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,False,diagnostic_images,verbose)
     
     outdir = Path(topdir/'OUTPUT'/signature)
     outdir.mkdir(parents=True,exist_ok=True)
@@ -161,14 +174,14 @@ def get_artificial_catalog(data, filter, mag_range, reff_range, n_range, axisrat
     artificial_catalog = np.array((x0s,y0s,mags,Ieff_SBs,I0_SBs,reffs*0.2637,ns,axisratios,thetas,xs,ys)).T
     np.savetxt(outdir/f'{signature}_artificial_dwarfs.catalog',artificial_catalog,fmt=['%-20d','%-20d','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f'],header=f"{'x0':<20s}{'y0':<20s}{'mag':<21s}{'Ieff_SB':<21s}{'I0_SB':<21s}{'reff':<21s}{'n':<21s}{'axisratio':<21s}{'theta':<21s}{'x':<21s}{'y':<21s}")
     if clean:
-        clean(outdir, signature, verbose)
+        clean_up_files(outdir, signature, verbose)
     if verbose:
         print("finished creating artificial image and catalog")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('data', help='Path of the science image containing the real dwarf galaxies. This will be filled with artificial galaxies.')
-    parser.add_argument('filter', choices=['u','g','r','i','z'], help='The photometric filter the data was taken in. This is needed to apply the correct zero point magnitude.')
+    parser.add_argument('phot_filter', choices=['u','g','r','i','z'], help='The photometric filter the data was taken in. This is needed to apply the correct zero point magnitude.')
     parser.add_argument('mag_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the apparent magnitude of the artificial dwarfs.')
     parser.add_argument('reff_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the effective radius of the artificial dwarfs. Provide these numbers in arcseconds. reff, the effective radius, is the radial distance inside of which half of the light of the dwarf is contained. reff and n are used to calculate the other two Sersic parameters, I0 and bn.')
     parser.add_argument('n_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the Sersic index n of the artificial dwarfs. Lower values of n correspond to profiles where the light is more centrally concentrated. reff and n are used to calculate the other two Sersic parameters, I0 and bn.')
@@ -179,11 +192,12 @@ if __name__ == '__main__':
     parser.add_argument('windowsize', type=int, help='The windowsize parameter that will be later used in the detection algorithm. Knowing this allows the program to calculate the coordinates of the artificial dwarfs in the binned image, which is important, since the presence of a detected dwarf at these coordinates indicates a successful detection.')
     parser.add_argument('-positions', nargs='*', help='Optional argument that allows you to specify the coordinates of the dwarfs (i.e., positions are non random). List arguments in the format -positions x y x y ...')
     parser.add_argument('--clean', action='store_true', default=False, help='Deletes output images and files (except, of course, the catalog) after the program has completed. This is useful for saving memory if you do not need to look at the files afterwards.')
+    parser.add_argument('--diagnostic_images', action='store_true', default=False, help='Displays diagnostic images from time to time. These images can be useful but interrupt the program and require the user to not be AFK. They also reduce the speed of the program somewhat.')
     parser.add_argument('--verbose', action='store_true', default=False, help='Displays messages in the terminal.')
 
     args = parser.parse_args()
     data = Path(args.data).resolve()
-    filter = args.filter
+    phot_filter = args.phot_filter
     mag_range = args.mag_range
     #convert to pixels for calculations using the resolution of 0.2637"/pix for DECam
     reff_range = [i/0.2637 for i in args.reff_range]
@@ -195,6 +209,7 @@ if __name__ == '__main__':
     windowsize = args.windowsize
     positions = args.positions
     clean = args.clean
+    diagnostic_images = args.diagnostic_images
     verbose = args.verbose
 
     topdir = Path.cwd().parent
@@ -202,5 +217,5 @@ if __name__ == '__main__':
     filenamestr = data.name.split('.')[0]
     signature = filenamestr+timestr
 
-    get_artificial_catalog(data, filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, clean, verbose, topdir, signature)
+    get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, clean, diagnostic_images, verbose, topdir, signature)
 

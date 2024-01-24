@@ -39,111 +39,111 @@
 <path fill="none" stroke="black" d="M300.08,-287.7C307.39,-279.3 316.31,-269.07 324.34,-259.86"/>
 <polygon fill="black" stroke="black" points="327.16,-261.94 331.09,-252.1 321.89,-257.34 327.16,-261.94"/>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOG -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOG -->
 <g id="node4" class="node">
-<title>PYTHONCOMPLETIONMASTER_CATALOG</title>
-<polygon fill="lemonchiffon" stroke="black" stroke-width="2" points="302,-180 299,-184 278,-184 275,-180 146,-180 146,-144 302,-144 302,-180"/>
-<text text-anchor="start" x="154" y="-158.3" font-family="Times,serif" font-size="14.00">MASTER_CATALOG</text>
+<title>PYTHONCOMPLETIONMATCH_CATALOG</title>
+<polygon fill="lemonchiffon" stroke="black" stroke-width="2" points="297.5,-180 294.5,-184 273.5,-184 270.5,-180 150.5,-180 150.5,-144 297.5,-144 297.5,-180"/>
+<text text-anchor="start" x="158.5" y="-158.3" font-family="Times,serif" font-size="14.00">MATCH_CATALOG</text>
 </g>
-<!-- PYTHONCOMPLETION&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOG -->
+<!-- PYTHONCOMPLETION&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOG -->
 <g id="edge3" class="edge">
-<title>PYTHONCOMPLETION&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOG</title>
+<title>PYTHONCOMPLETION&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOG</title>
 <path fill="none" stroke="black" d="M224,-215.7C224,-207.98 224,-198.71 224,-190.11"/>
 <polygon fill="black" stroke="black" points="227.5,-190.1 224,-180.1 220.5,-190.1 227.5,-190.1"/>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGARTIFICIAL -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGARTIFICIAL -->
 <g id="node5" class="node">
-<title>PYTHONCOMPLETIONMASTER_CATALOGARTIFICIAL</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGARTIFICIAL</title>
 <polygon fill="lemonchiffon" stroke="black" stroke-width="2" points="171.5,-108 168.5,-112 147.5,-112 144.5,-108 70.5,-108 70.5,-72 171.5,-72 171.5,-108"/>
 <text text-anchor="start" x="78.5" y="-86.3" font-family="Times,serif" font-size="14.00">ARTIFICIAL</text>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOG&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGARTIFICIAL -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOG&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGARTIFICIAL -->
 <g id="edge4" class="edge">
-<title>PYTHONCOMPLETIONMASTER_CATALOG&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGARTIFICIAL</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOG&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGARTIFICIAL</title>
 <path fill="none" stroke="black" d="M198.8,-143.88C185.59,-134.89 169.21,-123.76 154.89,-114.03"/>
 <polygon fill="black" stroke="black" points="156.53,-110.92 146.29,-108.19 152.6,-116.71 156.53,-110.92"/>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGcatalog -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGcatalog -->
 <g id="node6" class="node">
-<title>PYTHONCOMPLETIONMASTER_CATALOGcatalog</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGcatalog</title>
 <polygon fill="lemonchiffon" stroke="black" stroke-width="2" points="258,-108 255,-112 234,-112 231,-108 190,-108 190,-72 258,-72 258,-108"/>
 <text text-anchor="start" x="198" y="-86.3" font-family="Times,serif" font-size="14.00">catalog</text>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOG&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGcatalog -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOG&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGcatalog -->
 <g id="edge5" class="edge">
-<title>PYTHONCOMPLETIONMASTER_CATALOG&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGcatalog</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOG&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGcatalog</title>
 <path fill="none" stroke="black" d="M224,-143.7C224,-135.98 224,-126.71 224,-118.11"/>
 <polygon fill="black" stroke="black" points="227.5,-118.1 224,-108.1 220.5,-118.1 227.5,-118.1"/>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGDETECTION -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGDETECTION -->
 <g id="node7" class="node">
-<title>PYTHONCOMPLETIONMASTER_CATALOGDETECTION</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGDETECTION</title>
 <polygon fill="lemonchiffon" stroke="black" stroke-width="2" points="382,-108 379,-112 358,-112 355,-108 276,-108 276,-72 382,-72 382,-108"/>
 <text text-anchor="start" x="284" y="-86.3" font-family="Times,serif" font-size="14.00">DETECTION</text>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOG&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGDETECTION -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOG&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGDETECTION -->
 <g id="edge6" class="edge">
-<title>PYTHONCOMPLETIONMASTER_CATALOG&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGDETECTION</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOG&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGDETECTION</title>
 <path fill="none" stroke="black" d="M249.69,-143.88C263.29,-134.81 280.17,-123.55 294.86,-113.76"/>
 <polygon fill="black" stroke="black" points="296.84,-116.65 303.22,-108.19 292.95,-110.82 296.84,-116.65"/>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALartificial -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALartificial -->
 <g id="node8" class="node">
-<title>PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALartificial</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALartificial</title>
 <polygon fill="lemonchiffon" stroke="black" stroke-width="2" points="76,-36 73,-40 52,-40 49,-36 0,-36 0,0 76,0 76,-36"/>
 <text text-anchor="start" x="8" y="-14.3" font-family="Times,serif" font-size="14.00">artificial</text>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALartificial -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALartificial -->
 <g id="edge7" class="edge">
-<title>PYTHONCOMPLETIONMASTER_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALartificial</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALartificial</title>
 <path fill="none" stroke="black" d="M100.48,-71.7C90.13,-62.97 77.41,-52.24 66.16,-42.75"/>
 <polygon fill="black" stroke="black" points="68.18,-39.88 58.28,-36.1 63.67,-45.23 68.18,-39.88"/>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALpsfs -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALpsfs -->
 <g id="node9" class="node">
-<title>PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALpsfs</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALpsfs</title>
 <polygon fill="lemonchiffon" stroke="black" stroke-width="2" points="148,-36 145,-40 124,-40 121,-36 94,-36 94,0 148,0 148,-36"/>
 <text text-anchor="start" x="102" y="-14.3" font-family="Times,serif" font-size="14.00">psfs</text>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALpsfs -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALpsfs -->
 <g id="edge8" class="edge">
-<title>PYTHONCOMPLETIONMASTER_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALpsfs</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALpsfs</title>
 <path fill="none" stroke="black" d="M121,-71.7C121,-63.98 121,-54.71 121,-46.11"/>
 <polygon fill="black" stroke="black" points="124.5,-46.1 121,-36.1 117.5,-46.1 124.5,-46.1"/>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALstats -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALstats -->
 <g id="node10" class="node">
-<title>PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALstats</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALstats</title>
 <polygon fill="lemonchiffon" stroke="black" stroke-width="2" points="220,-36 217,-40 196,-40 193,-36 166,-36 166,0 220,0 220,-36"/>
 <text text-anchor="start" x="174" y="-14.3" font-family="Times,serif" font-size="14.00">stats</text>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALstats -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALstats -->
 <g id="edge9" class="edge">
-<title>PYTHONCOMPLETIONMASTER_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGARTIFICIALstats</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGARTIFICIAL&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGARTIFICIALstats</title>
 <path fill="none" stroke="black" d="M138.8,-71.7C147.6,-63.14 158.38,-52.66 168,-43.3"/>
 <polygon fill="black" stroke="black" points="170.68,-45.58 175.41,-36.1 165.8,-40.57 170.68,-45.58"/>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGDETECTIONsextractor -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGDETECTIONsextractor -->
 <g id="node11" class="node">
-<title>PYTHONCOMPLETIONMASTER_CATALOGDETECTIONsextractor</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGDETECTIONsextractor</title>
 <polygon fill="lemonchiffon" stroke="black" stroke-width="2" points="351,-36 348,-40 327,-40 324,-36 261,-36 261,0 351,0 351,-36"/>
 <text text-anchor="start" x="269" y="-14.3" font-family="Times,serif" font-size="14.00">sextractor</text>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGDETECTION&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGDETECTIONsextractor -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGDETECTION&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGDETECTIONsextractor -->
 <g id="edge10" class="edge">
-<title>PYTHONCOMPLETIONMASTER_CATALOGDETECTION&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGDETECTIONsextractor</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGDETECTION&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGDETECTIONsextractor</title>
 <path fill="none" stroke="black" d="M323.31,-71.7C320.75,-63.9 317.67,-54.51 314.82,-45.83"/>
 <polygon fill="black" stroke="black" points="318.07,-44.51 311.62,-36.1 311.42,-46.7 318.07,-44.51"/>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGDETECTIONdetection -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGDETECTIONdetection -->
 <g id="node12" class="node">
-<title>PYTHONCOMPLETIONMASTER_CATALOGDETECTIONdetection</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGDETECTIONdetection</title>
 <polygon fill="lemonchiffon" stroke="black" stroke-width="2" points="452.5,-36 449.5,-40 428.5,-40 425.5,-36 369.5,-36 369.5,0 452.5,0 452.5,-36"/>
 <text text-anchor="start" x="377.5" y="-14.3" font-family="Times,serif" font-size="14.00">detection</text>
 </g>
-<!-- PYTHONCOMPLETIONMASTER_CATALOGDETECTION&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGDETECTIONdetection -->
+<!-- PYTHONCOMPLETIONMATCH_CATALOGDETECTION&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGDETECTIONdetection -->
 <g id="edge11" class="edge">
-<title>PYTHONCOMPLETIONMASTER_CATALOGDETECTION&#45;&gt;PYTHONCOMPLETIONMASTER_CATALOGDETECTIONdetection</title>
+<title>PYTHONCOMPLETIONMATCH_CATALOGDETECTION&#45;&gt;PYTHONCOMPLETIONMATCH_CATALOGDETECTIONdetection</title>
 <path fill="none" stroke="black" d="M349.27,-71.7C359.5,-62.97 372.06,-52.24 383.18,-42.75"/>
 <polygon fill="black" stroke="black" points="385.63,-45.26 390.96,-36.1 381.09,-39.94 385.63,-45.26"/>
 </g>

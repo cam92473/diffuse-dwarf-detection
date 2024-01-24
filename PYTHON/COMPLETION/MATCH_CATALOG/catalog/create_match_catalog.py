@@ -16,9 +16,9 @@ def create_match_catalog(master_artificial_dwarfs_catalog,master_filtered_detect
     tol = 2
     mdet['merge_row'] = mdet.index.values  # Make a row to merge on with the index values
     for i, row in mdet.iterrows():
-        mart_subset = mart.loc[(mart.x - row.X_IMAGE)**2 + (mart.y - row.Y_IMAGE)**2 <= tol]
-        mart_subset['merge_row'] = i # Add a merge row
-        mart_list.append(mart_subset)
+        mart_potmatch = mart.loc[(mart.x - row.X_IMAGE)**2 + (mart.y - row.Y_IMAGE)**2 <= tol]
+        mart_potmatch['merge_row'] = i # Add a merge row
+        mart_list.append(mart_potmatch)
     mart_found = pd.concat(mart_list)
 
     result = pd.merge(mdet, mart_found, on='merge_row', how='left').dropna()

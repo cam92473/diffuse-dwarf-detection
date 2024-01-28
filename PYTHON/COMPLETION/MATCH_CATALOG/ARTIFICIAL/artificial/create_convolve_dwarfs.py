@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import argparse
 import time
 
-def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r99s,psfkernel,convolve,diagnostic_images,verbose):
+def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r99s,psfkernel,convolve,subtract,diagnostic_images,verbose):
 
     thetas_rad = radians(thetas+90)
     ellipticities = 1 - axisratios
@@ -74,13 +74,23 @@ def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,
         plt.title("log image of convolved tray")
         plt.show()
 
-    if verbose:
-        print("adding tray to image")
-        t1 = time.perf_counter()
-    data += conv_tray
-    if verbose:
-        t2 = time.perf_counter()
-        print(f"adding tray time: {t2-t1}")
+    print(subtract)
+    if subtract:
+        if verbose:
+            print("subtracting tray from image")
+            t1 = time.perf_counter()
+        data -= conv_tray
+        if verbose:
+            t2 = time.perf_counter()
+            print(f"subtracting tray time: {t2-t1}")
+    else:
+        if verbose:
+            print("adding tray to image")
+            t1 = time.perf_counter()
+        data += conv_tray
+        if verbose:
+            t2 = time.perf_counter()
+            print(f"adding tray time: {t2-t1}")
 
     if diagnostic_images:
         fig, ax = plt.subplots()

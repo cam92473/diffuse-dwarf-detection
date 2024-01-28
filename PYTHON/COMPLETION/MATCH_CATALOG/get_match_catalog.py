@@ -26,7 +26,7 @@ def get_match_catalog(data, weight, phot_filter, mag_range, reff_range, n_range,
         rundir = Path(outdir/f'run_{run_no}')
         rundir.mkdir(parents=True,exist_ok=True)
         rundirs.append(rundir)
-        get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, None, clean, diagnostic_images, verbose, rundir, signature)
+        get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, None, False, clean, diagnostic_images, verbose, rundir, signature)
         get_detection_catalog(rundir/f'{signature}_filled.fits', weight, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, clean, diagnostic_images, verbose, rundir, sexdir, signature)    
     create_master_catalogs(rundirs,num_runs,signature,verbose)
     tol = 2

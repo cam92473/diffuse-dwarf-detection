@@ -93,7 +93,7 @@ def clean_up_files(outdir, signature, verbose):
         t2 = time.perf_counter()
         print(f"cleaning time: {t2-t1}")
 
-def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, clean, diagnostic_images, verbose, outdir, signature):
+def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, subtract, clean, diagnostic_images, verbose, outdir, signature):
     
     #get randomized parameters for dwarfs
     mags = uniform(mag_range[0],mag_range[1],size=num_dwarfs)
@@ -148,7 +148,7 @@ def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, ax
     #data1 = np.copy(data)
     #data2 = np.copy(data)
 
-    data_filled = create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,True,diagnostic_images,verbose)
+    data_filled = create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,True,subtract,diagnostic_images,verbose)
     #data_filled2 = create_convolve_dwarfs(data2,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,False,diagnostic_images,verbose)
     
     fits.writeto(outdir/f'{signature}_filled.fits',data_filled,header,overwrite=True)
@@ -177,6 +177,7 @@ if __name__ == '__main__':
     parser.add_argument('psf', help='Path to the psf used to convolve the artificial dwarfs.')
     parser.add_argument('windowsize', type=int, help='The windowsize parameter that will be later used in the detection algorithm. Knowing this allows the program to calculate the coordinates of the artificial dwarfs in the binned image, which is important, since the presence of a detected dwarf at these coordinates indicates a successful detection.')
     parser.add_argument('-positions', nargs='*', help='Optional argument that allows you to specify the coordinates of the dwarfs (i.e., positions are non random). List arguments in the format -positions x y x y ...')
+    parser.add_argument('-subtract', action='store_true', default=False, help='If toggled, subtracts the created artificial dwarf from the image instead of adding it. Can be useful in testing.')
     parser.add_argument('--clean', action='store_true', default=False, help='Deletes output images and files (except, of course, the catalog) after the program has completed. This is useful for saving memory if you do not need to look at the files afterwards.')
     parser.add_argument('--diagnostic_images', action='store_true', default=False, help='Displays diagnostic images from time to time. These images can be useful but interrupt the program and require the user to not be AFK. They also reduce the speed of the program somewhat.')
     parser.add_argument('--verbose', action='store_true', default=False, help='Displays messages in the terminal.')
@@ -194,6 +195,7 @@ if __name__ == '__main__':
     psf = args.psf
     windowsize = args.windowsize
     positions = args.positions
+    subtract = args.subtract
     clean = args.clean
     diagnostic_images = args.diagnostic_images
     verbose = args.verbose
@@ -205,7 +207,7 @@ if __name__ == '__main__':
     outdir = Path(topdir/'OUTPUT'/signature)
     outdir.mkdir(parents=True,exist_ok=True)
 
-    get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, clean, diagnostic_images, verbose, outdir, signature)
+    get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, subtract, clean, diagnostic_images, verbose, outdir, signature)
 
 else:
 

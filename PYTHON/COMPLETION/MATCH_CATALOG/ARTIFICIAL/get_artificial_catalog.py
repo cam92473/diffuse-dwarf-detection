@@ -3,6 +3,7 @@ import numpy as np
 import time
 import os
 from datetime import datetime
+import numpy as np
 from numpy import exp, pi, log10
 from pathlib import Path
 from astropy.io import fits
@@ -13,28 +14,20 @@ from scipy.optimize import fsolve
 def getzp(phot_filter):
     if phot_filter == 'u':
         zp = 0
+        col='?'
     elif phot_filter == 'g':
         zp = 30
+        col = 1
     elif phot_filter == 'r':
         zp = 0
+        col=2
     elif phot_filter == 'i':
         zp = 0
+        col=3
     elif phot_filter == 'z':
         zp = 0
-    return zp
-
-def getMsun(phot_filter):
-    if phot_filter == 'u':
-        M_sun = 5.49
-    elif phot_filter == 'g':
-        M_sun = 5.23
-    elif phot_filter == 'r':
-        M_sun = 4.53
-    elif phot_filter == 'i':
-        M_sun = 4.14
-    elif phot_filter == 'z':
-        M_sun = 4.01
-    return M_sun
+        col=4
+    return zp, col
 
 def restofterms(reffs,ns,b_ns,axisratios):
     # 2 pi Reff^2 e^bn n bn^-2n gamma(2n) q
@@ -60,15 +53,15 @@ def find_bns(ns,num_dwarfs,verbose):
         print(f"finding b_ns time: {t2-t1}")
     return b_ns
 
-def find_Ieffs(mags,reffs,ns,b_ns,axisratios,thetas,num_dwarfs,zp,verbose):
-    F_tots = 10**(-0.4*(mags-zp))
-    #L_tots = 10**(-0.4*(mags-27.88-M_sun))*L_sun
+def find_Ftots(mags,zp,col):
+    fr = np.genfromtxt('DEC_filter_response.txt').T[col]
+    mean_fr = fr[fr!=0].mean()
+    F_tots = mean_fr*(10**(-0.4*(mags-zp)))
+    return F_tots
+
+def find_Ieffs(mags,reffs,ns,b_ns,axisratios,thetas,num_dwarfs,zp,col,verbose):
+    F_tots = find_Ftots(mags,zp,col)
     Ieffs = F_tots/restofterms(reffs,ns,b_ns,axisratios)
-    #mueffs = mags+5*log10(reffs)+2.5*log10(2*pi*exp(b_ns)*ns*b_ns**(-2*ns)*gamma(2*ns)*axisratios)
-    #print(mueffs)
-    #munought=25.11
-    #Ieffs = 10**(-0.4*(mueffs-munought))
-    #print(Ieffs)
     return Ieffs
 
 def r999definition(r999,b_n,n,reff):
@@ -135,19 +128,14 @@ def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, ax
     xs = np.round(x0s/windowsize).astype(int)
     ys = np.round(y0s/windowsize).astype(int)
 
-    #get zeropoint and solar luminosity based on the user-provided phot_filter
-    zp = getzp(phot_filter)
-    M_sun = getMsun(phot_filter)
-    L_sun = 3.828E26
-    #also the "/pix for DECam
-    res = 0.2637
+    zp, col = getzp(phot_filter)
+    res = 0.2637    # "/pix for DECam
 
     #there are other parameters we need to derive using the given parameters, such as b_n, Ieff and Ieff_SB
     b_ns = find_bns(ns,num_dwarfs,verbose)
-    Ieffs = find_Ieffs(mags,reffs,ns,b_ns,axisratios,thetas,num_dwarfs,zp,verbose)
+    Ieffs = find_Ieffs(mags,reffs,ns,b_ns,axisratios,thetas,num_dwarfs,zp,col,verbose)
     I0s = Ieffs*exp(b_ns)
 
-    #check formulas here for SB
     Ieff_SBs = 5*log10(res)-2.5*log10(Ieffs)+zp
     I0_SBs = 5*log10(res)-2.5*log10(I0s)+zp
 

@@ -30,7 +30,7 @@ def get_match_catalog(data, weight, phot_filter, mag_range, reff_range, n_range,
         get_detection_catalog(rundir/f'{signature}_filled.fits', weight, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, clean, diagnostic_images, verbose, rundir, sexdir, signature)    
     create_master_catalogs(rundirs,num_runs,signature,verbose)
     tol = 2
-    create_match_catalog(rundirs,num_runs,tol,signature,verbose)
+    create_match_catalog(rundirs[0].parent,tol,signature,verbose)
     #create_match_catalog(rundir/f'{signature}_artificial_dwarfs.catalog',rundir/f'{signature}_filtered_detections.catalog',rundir/f'{signature}_matches.catalog',verbose)
     if verbose:
         t2 = time.perf_counter()

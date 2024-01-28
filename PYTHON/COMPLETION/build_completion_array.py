@@ -110,7 +110,7 @@ if __name__ == "__main__":
     root = Path.cwd().parents[1]
     outdir = Path(root/'OUTPUT'/signature)
     outdir.mkdir(parents=True,exist_ok=True)
-    sexdir = Path(root/'PYTHON'/'COMPLETION'/'MASTER_CATALOG'/'DETECTION'/'sextractor')
+    sexdir = Path(root/'PYTHON'/'COMPLETION'/'MATCH_CATALOG'/'DETECTION'/'sextractor')
     saveimdir = Path(root/'RESULTS'/'completion_plots')
 
     build_completion_array(data, weight, phot_filter, mag_bin_vals, reff_bin_vals, n_range, axisratio_range, theta_range, num_dwarfs, psf, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, num_runs, clean, diagnostic_images, verbose, outdir, sexdir, saveimdir, signature)

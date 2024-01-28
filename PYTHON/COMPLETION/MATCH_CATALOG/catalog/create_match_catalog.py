@@ -3,11 +3,14 @@ import numpy as np
 import argparse
 import time
 
-def create_match_catalog(master_artificial_dwarfs_catalog,master_filtered_detections_catalog,match_catalog,tol,signature,verbose):
+def create_match_catalog(parent,tol,signature,verbose):
 
     if verbose:
         print("creating match catalog...")
         t1 = time.perf_counter()
+
+    master_artificial_dwarfs_catalog = parent/f'{signature}_master_artificial_dwarfs.catalog'
+    master_filtered_detections_catalog = parent/f'{signature}_master_filtered_detections.catalog'
 
     mart = pd.read_table(master_artificial_dwarfs_catalog,sep='\s+',escapechar='#')
     mdet = pd.read_table(master_filtered_detections_catalog,sep='\s+',escapechar='#')
@@ -26,7 +29,8 @@ def create_match_catalog(master_artificial_dwarfs_catalog,master_filtered_detect
     matchcat = result.iloc[:,idx+1:]
     matchcat.columns = ['x0','y0','gmag','Ieff_SB','I0_SB','reff','n','axisratio','theta','x','y']
 
-    np.savetxt(match_catalog,matchcat,fmt=['%-20d','%-20d','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f'],header=f"{'x0':<20s}{'y0':<20s}{'gmag':<21s}{'Ieff_SB':<21s}{'I0_SB':<21s}{'reff':<21s}{'n':<21s}{'axisratio':<21s}{'theta':<21s}{'x':<21s}{'y':<21s}")
+    master_match_catalog = parent/f'{signature}_master_matches.catalog'
+    np.savetxt(master_match_catalog,matchcat,fmt=['%-20d','%-20d','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f'],header=f"{'x0':<20s}{'y0':<20s}{'gmag':<21s}{'Ieff_SB':<21s}{'I0_SB':<21s}{'reff':<21s}{'n':<21s}{'axisratio':<21s}{'theta':<21s}{'x':<21s}{'y':<21s}")
 
     if verbose:
         t2 = time.perf_counter()

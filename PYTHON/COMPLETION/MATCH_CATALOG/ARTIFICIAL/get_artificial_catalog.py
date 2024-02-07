@@ -55,7 +55,10 @@ def find_bns(ns,num_dwarfs,verbose):
 
 def find_Ftots(mags,zp,col):
     fr = np.genfromtxt('DEC_filter_response.txt').T[col]
+    fr = fr[(fr>0.01)]
+    print(fr)
     mean_fr = fr[fr!=0].mean()
+    print(mean_fr)
     F_tots = mean_fr*(10**(-0.4*(mags-zp)))
     return F_tots
 

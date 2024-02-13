@@ -7,7 +7,7 @@ from modest_image import imshow as modest_imshow
 import time
 import gc
 
-def mask_image(data,outdir,max_dilations,maskfunc,diagnostic_images,signature,verbose):
+def mask_image(data,outdir,max_dilations,maskfunc,signature,verbose):
 
     with fits.open(outdir/f'{signature}_segment_objs.fits') as hdul:
         phdu = hdul[0]
@@ -17,10 +17,10 @@ def mask_image(data,outdir,max_dilations,maskfunc,diagnostic_images,signature,ve
     del(data1)
     gc.collect()
 
-    if diagnostic_images:
+    '''if diagnostic_images:
         _, ax = plt.subplots(figsize=(20,20))
         modest_imshow(ax, segmap, interpolation='none', origin='lower', cmap='prism')
-        plt.show()
+        plt.show()'''
 
     #Mask of True where an object exists
     totalmask = segmap>0
@@ -38,10 +38,10 @@ def mask_image(data,outdir,max_dilations,maskfunc,diagnostic_images,signature,ve
     del(segmap2)
     gc.collect()
 
-    if diagnostic_images:
+    '''if diagnostic_images:
         ax = plt.gca()
         modest_imshow(ax, totalmask, interpolation='none', origin='lower')
-        plt.show()
+        plt.show()'''
 
     #np.argsort puts the indices of the histogram in the order that would cause the histogram to be printed in order of increasing size.
     #We assign the values in this order to the pixel value array and keep the result as a new array.
@@ -122,10 +122,10 @@ def mask_image(data,outdir,max_dilations,maskfunc,diagnostic_images,signature,ve
         t4 = time.perf_counter()
         print(f"dilating segmap time: {t4-t3}")
     
-    if diagnostic_images:
+    '''if diagnostic_images:
         ax = plt.gca()
         modest_imshow(ax, totalmask, interpolation='none', origin='lower')
-        plt.show()
+        plt.show()'''
 
     with fits.open(data) as hdul2:
         phdu2 = hdul2[0]
@@ -138,6 +138,8 @@ def mask_image(data,outdir,max_dilations,maskfunc,diagnostic_images,signature,ve
     if verbose:
         t6 = time.perf_counter()
         print(f"applying mask time: {t6-t5}")
+
+    fits.writeto(outdir/f'{signature}_dilated_mask.fits',totalmask.astype(int),overwrite=True)
 
     fits.writeto(outdir/f'{signature}_masked.fits',data2,header2,overwrite=True)
 

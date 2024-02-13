@@ -13,7 +13,7 @@ def lognormalize(img):
         img -= (min-1)
     return log10(img)
 
-def bin_image(outdir, windowsize, dolog, testonimage, diagnostic_images, signature, verbose):
+def bin_image(outdir, windowsize, dolog, testonimage, signature, verbose):
 
     if verbose:
         t1 = time.perf_counter()
@@ -33,10 +33,10 @@ def bin_image(outdir, windowsize, dolog, testonimage, diagnostic_images, signatu
             r, c = data.shape
         origin = 'lower'
 
-    if diagnostic_images:
+    '''if diagnostic_images:
         _, ax = plt.subplots(figsize=(20,20))
         modest_imshow(ax, data, cmap='gray', interpolation='none', origin=origin)
-        plt.show()
+        plt.show()'''
 
     num_windows_r = r//windowsize
     remaining_pixels_r = r%windowsize
@@ -50,10 +50,10 @@ def bin_image(outdir, windowsize, dolog, testonimage, diagnostic_images, signatu
     if dolog:
         median_image = lognormalize(median_image)
 
-    if diagnostic_images:
+    '''if diagnostic_images:
         ax = plt.gca()
         modest_imshow(ax, median_image, cmap='gray', interpolation='none', origin=origin)
-        plt.show()
+        plt.show()'''
 
     if testonimage:
         imsave(outdir/f'{signature}_binned.fits',median_image)

@@ -42,7 +42,7 @@ def compare(image, aperture_resid, aperture_bg, size):
     print(f"mean of background: {mean_b}")
     print(f"std of background: {std_b}")
 
-    perc_diff_mean = np.abs(mean_r-mean_b)/((mean_r+mean_b)/2)*100 
+    perc_diff_mean = np.abs(mean_r-mean_b)/((mean_r))*100 
     print(f"percent difference between means: {perc_diff_mean}")
 
 if __name__ == '__main__':

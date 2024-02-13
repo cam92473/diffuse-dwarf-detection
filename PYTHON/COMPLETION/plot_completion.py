@@ -35,7 +35,7 @@ def make_plot(mag_bins,reff_bins,num_rows,num_cols,completion,savename):
 def plot_completion(completion_array,savename):
 
     with open(completion_array, "r") as f:
-        header = list(f.readline().rstrip()[2:].split(" "))
+        header = [float(x) for x in list(f.readline().rstrip()[2:].split(" "))]
     mag_bins = np.arange(header[0],header[1]+header[2],header[2])
     reff_bins = np.arange(header[3],header[4]+header[5],header[5])
     num_rows = reff_bins.size-1

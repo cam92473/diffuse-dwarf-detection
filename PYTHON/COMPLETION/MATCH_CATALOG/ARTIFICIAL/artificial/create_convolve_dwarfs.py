@@ -7,12 +7,13 @@ import matplotlib.pyplot as plt
 import argparse
 import time
 
-def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r99s,psfkernel,convolve,subtract,diagnostic_images,verbose):
+def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r99s,psfkernel,subtract,verbose):
 
     thetas_rad = radians(thetas+90)
     ellipticities = 1 - axisratios
 
-    #try putting all the new dwarfs in a zero image (tray), "baking" (convolving) the entire tray, and then plopping the results onto the original image
+    #the dwarfs are created and convolved on stickers which are designed to be just big enough to contain pretty much the entire profile of the dwarf.
+    #in addition to being added to the data image, the dwarfs will be added to a tray containing the data only in the sticker regions. In other words, outside the stickers, the values are all zero. This is simply for diagnostic purposes (to see the locations of the new artificial dwarfs)
 
     tray = np.zeros(data_shape)
 
@@ -28,7 +29,7 @@ def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,
     sticker_topedges[sticker_topedges>(data_shape[0]-1)] = data_shape[0]-1
 
     if verbose:
-        print("creating Sersic profiles and putting them onto the tray (stickers)")
+        print("creating artificial dwarf profiles...")
         t1 = time.perf_counter()
 
     for i in range(num_dwarfs):
@@ -39,69 +40,24 @@ def create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,
         #Sersic profile for dwarf i
         modeli = Sersic2D(amplitude=Ieffs[i], r_eff=reffs[i], n=ns[i], x_0=x0s[i], y_0=y0s[i], ellip=ellipticities[i], theta=thetas_rad[i])
         #applying model to sticker coords to get a sticker
-        if verbose:
-            print("done making model")
         stickeri = modeli(xxi, yyi)
-        if verbose:
-            print("done assigning model to sticker")
-        #putting sticker on the tray
-        tray[sticker_bottomedges[i]:sticker_topedges[i],sticker_leftedges[i]:sticker_rightedges[i]] += stickeri
-        if verbose:
-            print("done putting sticker on tray")
+        if psfkernel is not None:
+            conv_stickeri = fftconvolve(stickeri,psfkernel,mode='same')
+        else:
+            conv_stickeri = stickeri
+        tray[sticker_bottomedges[i]:sticker_topedges[i],sticker_leftedges[i]:sticker_rightedges[i]] = data[sticker_bottomedges[i]:sticker_topedges[i],sticker_leftedges[i]:sticker_rightedges[i]]
+        if not subtract:
+            data[sticker_bottomedges[i]:sticker_topedges[i],sticker_leftedges[i]:sticker_rightedges[i]] += conv_stickeri
+            tray[sticker_bottomedges[i]:sticker_topedges[i],sticker_leftedges[i]:sticker_rightedges[i]] += conv_stickeri
+        else:
+            data[sticker_bottomedges[i]:sticker_topedges[i],sticker_leftedges[i]:sticker_rightedges[i]] -= conv_stickeri
+            tray[sticker_bottomedges[i]:sticker_topedges[i],sticker_leftedges[i]:sticker_rightedges[i]] -= conv_stickeri
+
     if verbose:
         t2 = time.perf_counter()
-        print(f"tray filling time: {t2-t1}")
+        print(f"done creating artificial dwarf profiles. Total time: {t2-t1}")
 
-    if diagnostic_images:
-        plt.imshow(np.log10(tray+1))
-        plt.title("log image of sticker-filled tray")
-        plt.show()
-
-    if convolve:
-        if verbose:
-            print("convolving dwarfs (this could take a while)")
-            t1 = time.perf_counter()
-        conv_tray = fftconvolve(tray,psfkernel,mode='same')
-        if verbose:
-            t2 = time.perf_counter()
-            print(f"convolution time: {t2-t1}")
-    else:
-        print("note: not convolving")
-        conv_tray = tray
-    
-    if diagnostic_images:
-        plt.imshow(np.log10(conv_tray+1))
-        plt.title("log image of convolved tray")
-        plt.show()
-
-    print(subtract)
-    if subtract:
-        if verbose:
-            print("subtracting tray from image")
-            t1 = time.perf_counter()
-        data -= conv_tray
-        if verbose:
-            t2 = time.perf_counter()
-            print(f"subtracting tray time: {t2-t1}")
-    else:
-        if verbose:
-            print("adding tray to image")
-            t1 = time.perf_counter()
-        data += conv_tray
-        if verbose:
-            t2 = time.perf_counter()
-            print(f"adding tray time: {t2-t1}")
-
-    if diagnostic_images:
-        fig, ax = plt.subplots()
-        logdata = np.log10(data-data.min()+1)
-        #the vmin and vmax parameters here are arbitrary
-        im = ax.imshow(logdata, vmin=1, vmax=logdata.max()*0.5)
-        cbar = fig.colorbar(im,ax=ax)
-        plt.title("log image of data after convolved tray has been placed on top")
-        plt.show()
-
-    return data
+    return data, tray
 
 if __name__ == '__main__':
 

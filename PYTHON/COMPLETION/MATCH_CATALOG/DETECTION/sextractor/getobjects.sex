@@ -28,8 +28,8 @@ CLEAN_PARAM      1.0            # Cleaning efficiency
  
 #-------------------------------- WEIGHTing ----------------------------------
 
-WEIGHT_TYPE      MAP_WEIGHT     # type of WEIGHTing: NONE, BACKGROUND,
-                                # MAP_RMS, MAP_VAR or MAP_WEIGHT
+WEIGHT_TYPE      MAP_WEIGHT   # type of WEIGHTing: NONE, BACKGROUND,
+                                       # MAP_RMS, MAP_VAR or MAP_WEIGHT
 WEIGHT_IMAGE     !!specifiedbyuser!!   # weight-map filename
 
 #-------------------------------- FLAGging -----------------------------------

@@ -1,7 +1,6 @@
 import argparse
 import numpy as np
 import time
-import os
 from datetime import datetime
 import numpy as np
 from numpy import exp, pi, log10
@@ -53,17 +52,17 @@ def find_bns(ns,num_dwarfs,verbose):
         print(f"finding b_ns time: {t2-t1}")
     return b_ns
 
-def find_Ftots(mags,zp,col):
-    fr = np.genfromtxt('DEC_filter_response.txt').T[col]
+def find_Ftots(mags,frpath,zp,col):
+    fr = np.genfromtxt(frpath).T[col]
     fr = fr[(fr>0.01)]
-    print(fr)
+    #print(fr)
     mean_fr = fr[fr!=0].mean()
-    print(mean_fr)
+    #print(mean_fr)
     F_tots = mean_fr*(10**(-0.4*(mags-zp)))
     return F_tots
 
-def find_Ieffs(mags,reffs,ns,b_ns,axisratios,thetas,num_dwarfs,zp,col,verbose):
-    F_tots = find_Ftots(mags,zp,col)
+def find_Ieffs(mags,reffs,ns,b_ns,axisratios,thetas,num_dwarfs,frpath,zp,col,verbose):
+    F_tots = find_Ftots(mags,frpath,zp,col)
     Ieffs = F_tots/restofterms(reffs,ns,b_ns,axisratios)
     return Ieffs
 
@@ -87,16 +86,7 @@ def find_r999s(b_ns,ns,reffs,num_dwarfs,verbose):
         print(f"finding r999s time: {t2-t1}")
     return r999s
 
-def clean_up_files(outdir, signature, verbose):
-    if verbose:
-        print("cleaning up unneeded files...")
-        t1 = time.perf_counter()
-    os.remove(outdir/f'{signature}_filled.fits')
-    if verbose:
-        t2 = time.perf_counter()
-        print(f"cleaning time: {t2-t1}")
-
-def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, subtract, clean, diagnostic_images, verbose, outdir, signature):
+def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, subtract, gallery, verbose, outdir, frpath, signature):
     
     #get randomized parameters for dwarfs
     mags = uniform(mag_range[0],mag_range[1],size=num_dwarfs)
@@ -108,9 +98,9 @@ def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, ax
     #get image shape, needed for placing dwarfs (getting coords)
     with fits.open(data) as hdul:
         phdu = hdul[0]
-        data = phdu.data
+        data1 = phdu.data
         header = phdu.header
-        data_shape = data.shape
+        data1_shape = data1.shape
 
     #have to place the dwarfs on non-NaN coordinates, so we use the following code
     if positions is None:
@@ -118,8 +108,8 @@ def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, ax
         y0s = np.zeros(num_dwarfs,dtype=int)
         i = 0
         while i < num_dwarfs:
-            r, c = randint(data_shape[0]), randint(data_shape[1])
-            if not np.isnan(data[r,c]):
+            r, c = randint(data1_shape[0]), randint(data1_shape[1])
+            if not np.isnan(data1[r,c]):
                 x0s[i] = c
                 y0s[i] = r
                 i += 1
@@ -136,37 +126,42 @@ def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, ax
 
     #there are other parameters we need to derive using the given parameters, such as b_n, Ieff and Ieff_SB
     b_ns = find_bns(ns,num_dwarfs,verbose)
-    Ieffs = find_Ieffs(mags,reffs,ns,b_ns,axisratios,thetas,num_dwarfs,zp,col,verbose)
+    Ieffs = find_Ieffs(mags,reffs,ns,b_ns,axisratios,thetas,num_dwarfs,frpath,zp,col,verbose)
     I0s = Ieffs*exp(b_ns)
 
     Ieff_SBs = 5*log10(res)-2.5*log10(Ieffs)+zp
     I0_SBs = 5*log10(res)-2.5*log10(I0s)+zp
 
-    with fits.open(psf) as hdul:
-        psf_phdu = hdul[0]
-        psfkernel = psf_phdu.data
+    if psf == 'NO-PSF':
+        psfkernel = None
+    else:
+        with fits.open(psf) as hdul:
+            psf_phdu = hdul[0]
+            psfkernel = psf_phdu.data
 
     r999s = find_r999s(b_ns,ns,reffs,num_dwarfs,verbose)
 
-    #data1 = np.copy(data)
-    #data2 = np.copy(data)
-
-    data_filled = create_convolve_dwarfs(data,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,True,subtract,diagnostic_images,verbose)
-    #data_filled2 = create_convolve_dwarfs(data2,data_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,False,diagnostic_images,verbose)
+    data_filled, tray_filled = create_convolve_dwarfs(data1,data1_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,subtract,verbose)
     
     fits.writeto(outdir/f'{signature}_filled.fits',data_filled,header,overwrite=True)
-    #fits.writeto(outdir/f'{signature}_filled2.fits',data_filled2,header,overwrite=True)
+    fits.writeto(outdir/f'{signature}_artificial_only.fits',tray_filled,header,overwrite=True)
+
     #if we want reffs in arseconds in the catalog, we convert back using the inverse resolution
     artificial_catalog = np.array((x0s,y0s,mags,Ieff_SBs,I0_SBs,reffs*0.2637,ns,axisratios,thetas,xs,ys)).T
     np.savetxt(outdir/f'{signature}_artificial_dwarfs.catalog',artificial_catalog,fmt=['%-20d','%-20d','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f'],header=f"{'x0':<20s}{'y0':<20s}{'mag':<21s}{'Ieff_SB':<21s}{'I0_SB':<21s}{'reff':<21s}{'n':<21s}{'axisratio':<21s}{'theta':<21s}{'x':<21s}{'y':<21s}")
-    if clean:
-        clean_up_files(outdir, signature, verbose)
+    
+    if gallery:
+        if verbose:
+            print("displaying gallery...")
+        plot_artificial_gallery(data,outdir,None)
+
     if verbose:
         print("finished creating artificial image and catalog")
 
 if __name__ == '__main__':
     
     from artificial.create_convolve_dwarfs import create_convolve_dwarfs
+    from plot_artificial_gallery import plot_artificial_gallery
 
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('data', help='Path of the science image containing the real dwarf galaxies. This will be filled with artificial galaxies.')
@@ -177,12 +172,12 @@ if __name__ == '__main__':
     parser.add_argument('axisratio_range', nargs=2, type=float, help='Two numbers (low and high) that specify the axis ratio range of the artificial dwarfs. The axis ratio takes a value from 0 to 1, where 0 is unphysical and 1 is perfectly circular. (It is the complement of the ellipticity)')
     parser.add_argument('theta_range', nargs=2, type=float, help='Two numbers (low and high) that specify the angular offset range of artificial dwarfs, in degrees. Enter 0 and 360 if you want to include all possible angles.')
     parser.add_argument('num_dwarfs', type=int, help='The number of artificial dwarfs to insert into the data image.')
-    parser.add_argument('psf', help='Path to the psf used to convolve the artificial dwarfs.')
+    parser.add_argument('psf', help='Path to the psf used to convolve the artificial dwarfs. If you do not wish to convolve the dwarfs, enter NO-PSF.')
     parser.add_argument('windowsize', type=int, help='The windowsize parameter that will be later used in the detection algorithm. Knowing this allows the program to calculate the coordinates of the artificial dwarfs in the binned image, which is important, since the presence of a detected dwarf at these coordinates indicates a successful detection.')
     parser.add_argument('-positions', nargs='*', help='Optional argument that allows you to specify the coordinates of the dwarfs (i.e., positions are non random). List arguments in the format -positions x y x y ...')
     parser.add_argument('-subtract', action='store_true', default=False, help='If toggled, subtracts the created artificial dwarf from the image instead of adding it. Can be useful in testing.')
-    parser.add_argument('--clean', action='store_true', default=False, help='Deletes output images and files (except, of course, the catalog) after the program has completed. This is useful for saving memory if you do not need to look at the files afterwards.')
-    parser.add_argument('--diagnostic_images', action='store_true', default=False, help='Displays diagnostic images from time to time. These images can be useful but interrupt the program and require the user to not be AFK. They also reduce the speed of the program somewhat.')
+    parser.add_argument('--gallery', action='store_true', default=False, help='Displays a gallery of images at the end of the artificial dwarf creation procedure. Useful for getting a visual understanding of what happens in the course of the algorithm, and is good for bug-spotting and doing a reality check.')
+    parser.add_argument('--signature', help='Optional parameter which allows you to specify the signature, or the name used to identify the output folder and all of its files (if not specified, a name will be created based on the input data image and the current time).')
     parser.add_argument('--verbose', action='store_true', default=False, help='Displays messages in the terminal.')
 
     args = parser.parse_args()
@@ -199,19 +194,21 @@ if __name__ == '__main__':
     windowsize = args.windowsize
     positions = args.positions
     subtract = args.subtract
-    clean = args.clean
-    diagnostic_images = args.diagnostic_images
+    gallery = args.gallery
+    signature = args.signature
     verbose = args.verbose
 
     timestr = datetime.now().strftime("-%Y%m%d%H%M%S")
     filenamestr = data.name.split('.')[0]
-    signature = filenamestr+timestr
-    topdir = Path.cwd().parents[3]
-    outdir = Path(topdir/'OUTPUT'/signature)
+    if signature is None:
+        signature = filenamestr + timestr
+    root = Path.cwd().parents[3]
+    outdir = Path(root/'OUTPUT'/signature)
     outdir.mkdir(parents=True,exist_ok=True)
+    frpath = Path(root/'PYTHON'/'COMPLETION'/'MATCH_CATALOG'/'ARTIFICIAL'/'DEC_filter_response.txt')  
 
-    get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, subtract, clean, diagnostic_images, verbose, outdir, signature)
+    get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, subtract, gallery, verbose, outdir, frpath, signature)
 
 else:
-
     from .artificial.create_convolve_dwarfs import create_convolve_dwarfs
+    from .plot_artificial_gallery import plot_artificial_gallery

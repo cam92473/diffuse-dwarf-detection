@@ -3,11 +3,11 @@
 <VOTABLE version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.ivoa.net/xml/VOTable/v1.1">
 <DESCRIPTION>produced by Source Extractor</DESCRIPTION>
 <!-- VOTable description at http://www.ivoa.net/Documents/latest/VOT.html -->
-<RESOURCE ID="Source Extractor" name="n_0.5_0.75_binned.fits">
+<RESOURCE ID="Source Extractor" name="cooltest_binned.fits">
  <DESCRIPTION>Catalog of sources extracted with Source Extractor</DESCRIPTION>
  <INFO name="QUERY_STATUS" value="OK" />
  <COOSYS ID="J2000" equinox="J2000" epoch="J2000" system="ICRS"/>
- <TABLE ID="Source_List" name="n_0.5_0.75_binned.fits/out">
+ <TABLE ID="Source_List" name="cooltest_binned.fits/out">
   <DESCRIPTION>Table of sources detected in image</DESCRIPTION>
   <!-- Now comes the definition of each Source Extractor parameter -->
   <FIELD name="NUMBER" ucd="meta.record" datatype="int" unit="">
@@ -59,12 +59,12 @@
   <PARAM name="Soft_Ref" datatype="char" arraysize="*" ucd="meta.bib.bibcode;meta.software" value="1996A&amp;AS..117..393B"/>
   <PARAM name="NThreads" datatype="int" ucd="meta.number;meta.software" value="1"/>
   <PARAM name="Date" datatype="char" arraysize="*" ucd="time.event.end;meta.software" value="2024-02-13"/>
-  <PARAM name="Time" datatype="char" arraysize="*" ucd="time.event.end;meta.software" value="05:28:07"/>
+  <PARAM name="Time" datatype="char" arraysize="*" ucd="time.event.end;meta.software" value="14:34:58"/>
   <PARAM name="Duration" datatype="float" ucd="time.event;meta.software" value="1" unit="s"/>
   <PARAM name="User" datatype="char" arraysize="*" ucd="meta.curation" value="cameron"/>
   <PARAM name="Host" datatype="char" arraysize="*" ucd="meta.curation" value="(null)"/>
   <PARAM name="Path" datatype="char" arraysize="*" ucd="meta.dataset" value="/home/cameron/Desktop/diffuse_dwarf_detection/PYTHON/COMPLETION/MATCH_CATALOG/DETECTION/sextractor"/>
-  <PARAM name="Image_Name" datatype="char" arraysize="*" ucd="obs.image;meta.fits" value="/home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/n_0.5_0.75/mag20.0-21.0/reff16.0-20.0/run_99/n_0.5_0.75_binned.fits"/>
+  <PARAM name="Image_Name" datatype="char" arraysize="*" ucd="obs.image;meta.fits" value="/home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/cooltest/mag17.0-18.0/reff50.0-100.0/run_0/cooltest_binned.fits"/>
   <TABLE ID="Extension_Data" name="Extension_Data">
    <DESCRIPTION>Data gathered by Source Extractor for every FITS extension</DESCRIPTION>
    <!-- NExtensions may be 0 if an error occurred early in the processing -->
@@ -89,9 +89,9 @@
    <FIELD name="Satur_Level" datatype="float" arraysize="1" ucd="instr.saturation;phot.count" unit="ct"/>
    <DATA><TABLEDATA>
     <TR>
-     <TD>1</TD><TD>F</TD><TD>13/02/2024</TD><TD>05:28:07</TD><TD>1</TD><TD>5167</TD><TD>4709</TD>
-     <TD>Unnamed</TD><TD>0.867071</TD>
-     <TD>0.0527537</TD><TD>0.0527537</TD><TD>0</TD><TD>0.262977</TD><TD>0.000000</TD>
+     <TD>1</TD><TD>F</TD><TD>13/02/2024</TD><TD>14:34:58</TD><TD>1</TD><TD>5055</TD><TD>4588</TD>
+     <TD>Unnamed</TD><TD>0.867283</TD>
+     <TD>0.0535451</TD><TD>0.0535451</TD><TD>0</TD><TD>0.262977</TD><TD>0.000000</TD>
      <TD>5.13608</TD><TD>99669.9</TD>
     </TR>
    </TABLEDATA></DATA>
@@ -106,10 +106,10 @@
   </TABLE>
   <RESOURCE ID="Config" name="Config">
    <DESCRIPTION>Source Extractor configuration</DESCRIPTION>
-   <PARAM name="Command_Line" datatype="char" arraysize="*" ucd="obs.param" value="source-extractor /home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/n_0.5_0.75/mag20.0-21.0/reff16.0-20.0/run_99/n_0.5_0.75_binned.fits -c getdetections.sex -DETECT_MINAREA 5 -DETECT_THRESH 1 -CHECKIMAGE_NAME /home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/n_0.5_0.75/mag20.0-21.0/reff16.0-20.0/run_99/n_0.5_0.75_segment_dets.fits -CATALOG_NAME /home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/n_0.5_0.75/mag20.0-21.0/reff16.0-20.0/run_99/n_0.5_0.75_filtered_detections.catalog"/>
+   <PARAM name="Command_Line" datatype="char" arraysize="*" ucd="obs.param" value="source-extractor /home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/cooltest/mag17.0-18.0/reff50.0-100.0/run_0/cooltest_binned.fits -c getdetections.sex -DETECT_MINAREA 5 -DETECT_THRESH 1 -CHECKIMAGE_NAME /home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/cooltest/mag17.0-18.0/reff50.0-100.0/run_0/cooltest_segment_dets.fits -CATALOG_NAME /home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/cooltest/mag17.0-18.0/reff50.0-100.0/run_0/cooltest_filtered_detections.catalog"/>
    <PARAM name="Prefs_Name" datatype="char" arraysize="*" ucd="obs.param;meta.file" value="getdetections.sex"/>
    <PARAM name="Catalog_Type" datatype="char" arraysize="*" ucd="meta.code;meta.table" value="ASCII"/>
-   <PARAM name="Catalog_Name" datatype="char" arraysize="*" ucd="meta;meta.table;meta.file" value="/home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/n_0.5_0.75/mag20.0-21.0/reff16.0-20.0/run_99/n_0.5_0.75_filtered_detections.catalog"/>
+   <PARAM name="Catalog_Name" datatype="char" arraysize="*" ucd="meta;meta.table;meta.file" value="/home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/cooltest/mag17.0-18.0/reff50.0-100.0/run_0/cooltest_filtered_detections.catalog"/>
    <PARAM name="Parameters_Name" datatype="char" arraysize="*" ucd="meta;obs.param" value="getdetections.param"/>
    <PARAM name="Detect_Type" datatype="char" arraysize="*" ucd="meta.code;obs.param;instr.det" value="CCD"/>
    <PARAM name="Detect_MinArea" unit="pix" datatype="int" ucd="obs.param;phys.area;stat.min" value="5"/>
@@ -154,7 +154,7 @@
    <PARAM name="BackPhoto_Thick" unit="pix" datatype="int" ucd="obs.param" value="24"/>
    <PARAM name="Back_FiltThresh" unit="ct" datatype="double" ucd="obs.param;" value="0"/>
    <PARAM name="CheckImage_Type" datatype="char" arraysize="*" ucd="meta.code;obs.param" value="SEGMENTATION"/>
-   <PARAM name="CheckImage_Name" datatype="char" arraysize="*" ucd="meta.id;meta.file;meta.fits" value="/home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/n_0.5_0.75/mag20.0-21.0/reff16.0-20.0/run_99/n_0.5_0.75_segment_dets.fits"/>
+   <PARAM name="CheckImage_Name" datatype="char" arraysize="*" ucd="meta.id;meta.file;meta.fits" value="/home/cameron/Desktop/diffuse_dwarf_detection/OUTPUT/cooltest/mag17.0-18.0/reff50.0-100.0/run_0/cooltest_segment_dets.fits"/>
    <PARAM name="Memory_ObjStack" datatype="int" ucd="meta.number;src;obs.param" value="3000"/>
    <PARAM name="Memory_PixStack" unit="pix" datatype="int" ucd="meta.number;obs.param" value="300000"/>
    <PARAM name="Memory_BufSize" unit="pix" datatype="int" ucd="meta.number;obs.param" value="1024"/>

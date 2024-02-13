@@ -1,6 +1,8 @@
 import argparse
 import numpy as np
 import time
+import json
+import shutil
 from datetime import datetime
 import numpy as np
 from numpy import exp, pi, log10
@@ -86,8 +88,18 @@ def find_r999s(b_ns,ns,reffs,num_dwarfs,verbose):
         print(f"finding r999s time: {t2-t1}")
     return r999s
 
-def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, subtract, gallery, verbose, outdir, frpath, signature):
+def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, reff_units, positions, subtract, gallery, verbose, outdir, frpath, signature):
     
+    #first convert reff_range to pix, if not already in pix
+    res = 0.2637    # "/pix for DECam
+    cenAdist = 3.8E6    # distance to NGC5128
+    if reff_units == 'as':
+        reff_range = [i/res for i in reff_range]
+    elif reff_units == 'px':
+        pass
+    elif reff_units == 'pc':
+        reff_range = [i/cenAdist*206265/res for i in reff_range]
+
     #get randomized parameters for dwarfs
     mags = uniform(mag_range[0],mag_range[1],size=num_dwarfs)
     reffs = uniform(reff_range[0],reff_range[1],size=num_dwarfs)
@@ -122,7 +134,6 @@ def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, ax
     ys = np.round(y0s/windowsize).astype(int)
 
     zp, col = getzp(phot_filter)
-    res = 0.2637    # "/pix for DECam
 
     #there are other parameters we need to derive using the given parameters, such as b_n, Ieff and Ieff_SB
     b_ns = find_bns(ns,num_dwarfs,verbose)
@@ -144,11 +155,11 @@ def get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, ax
     data_filled, tray_filled = create_convolve_dwarfs(data1,data1_shape,Ieffs,reffs,ns,axisratios,thetas,x0s,y0s,num_dwarfs,r999s,psfkernel,subtract,verbose)
     
     fits.writeto(outdir/f'{signature}_filled.fits',data_filled,header,overwrite=True)
-    fits.writeto(outdir/f'{signature}_artificial_only.fits',tray_filled,header,overwrite=True)
+    fits.writeto(outdir/f'{signature}_stickers.fits',tray_filled,header,overwrite=True)
 
     #if we want reffs in arseconds in the catalog, we convert back using the inverse resolution
     artificial_catalog = np.array((x0s,y0s,mags,Ieff_SBs,I0_SBs,reffs*0.2637,ns,axisratios,thetas,xs,ys)).T
-    np.savetxt(outdir/f'{signature}_artificial_dwarfs.catalog',artificial_catalog,fmt=['%-20d','%-20d','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f'],header=f"{'x0':<20s}{'y0':<20s}{'mag':<21s}{'Ieff_SB':<21s}{'I0_SB':<21s}{'reff':<21s}{'n':<21s}{'axisratio':<21s}{'theta':<21s}{'x':<21s}{'y':<21s}")
+    np.savetxt(outdir/f'{signature}_artificial_dwarfs.catalog',artificial_catalog,fmt=['%-20d','%-20d','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f','%-20.5f'],header=f"{'x0':<20s}{'y0':<20s}{'mag':<21s}{'Ieff_SB':<21s}{'I0_SB':<21s}{'reff[pix]':<21s}{'n':<21s}{'axisratio':<21s}{'theta':<21s}{'x':<21s}{'y':<21s}")
     
     if gallery:
         if verbose:
@@ -167,13 +178,14 @@ if __name__ == '__main__':
     parser.add_argument('data', help='Path of the science image containing the real dwarf galaxies. This will be filled with artificial galaxies.')
     parser.add_argument('phot_filter', choices=['u','g','r','i','z'], help='The photometric filter the data was taken in. This is needed to apply the correct zero point magnitude.')
     parser.add_argument('mag_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the apparent magnitude of the artificial dwarfs.')
-    parser.add_argument('reff_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the effective radius of the artificial dwarfs. Provide these numbers in arcseconds. reff, the effective radius, is the radial distance inside of which half of the light of the dwarf is contained. reff and n are used to calculate the other two Sersic parameters, I0 and bn.')
+    parser.add_argument('reff_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the effective radius of the artificial dwarfs, which is the radial distance inside of which half of the light of the dwarf is contained. reff and n are used to calculate the other two Sersic parameters, I0 and bn.')
     parser.add_argument('n_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the Sersic index n of the artificial dwarfs. Lower values of n correspond to profiles where the light is more centrally concentrated. reff and n are used to calculate the other two Sersic parameters, I0 and bn.')
     parser.add_argument('axisratio_range', nargs=2, type=float, help='Two numbers (low and high) that specify the axis ratio range of the artificial dwarfs. The axis ratio takes a value from 0 to 1, where 0 is unphysical and 1 is perfectly circular. (It is the complement of the ellipticity)')
     parser.add_argument('theta_range', nargs=2, type=float, help='Two numbers (low and high) that specify the angular offset range of artificial dwarfs, in degrees. Enter 0 and 360 if you want to include all possible angles.')
     parser.add_argument('num_dwarfs', type=int, help='The number of artificial dwarfs to insert into the data image.')
     parser.add_argument('psf', help='Path to the psf used to convolve the artificial dwarfs. If you do not wish to convolve the dwarfs, enter NO-PSF.')
     parser.add_argument('windowsize', type=int, help='The windowsize parameter that will be later used in the detection algorithm. Knowing this allows the program to calculate the coordinates of the artificial dwarfs in the binned image, which is important, since the presence of a detected dwarf at these coordinates indicates a successful detection.')
+    parser.add_argument('-reff_units', choices=['as','px','pc'], default='as', help='The units of the previously inputted values for reff_range. Can be arcseconds ("as"), pixels ("px"), or parsecs ("pc"). Default is arcseconds. The program converts between these values using the distance to Centaurus A (3.8E6 pc) and the resolution of DECam (0.2637 "/pix).')
     parser.add_argument('-positions', nargs='*', help='Optional argument that allows you to specify the coordinates of the dwarfs (i.e., positions are non random). List arguments in the format -positions x y x y ...')
     parser.add_argument('-subtract', action='store_true', default=False, help='If toggled, subtracts the created artificial dwarf from the image instead of adding it. Can be useful in testing.')
     parser.add_argument('--gallery', action='store_true', default=False, help='Displays a gallery of images at the end of the artificial dwarf creation procedure. Useful for getting a visual understanding of what happens in the course of the algorithm, and is good for bug-spotting and doing a reality check.')
@@ -184,14 +196,14 @@ if __name__ == '__main__':
     data = Path(args.data).resolve()
     phot_filter = args.phot_filter
     mag_range = args.mag_range
-    #convert to pixels for calculations using the resolution of 0.2637"/pix for DECam
-    reff_range = [i/0.2637 for i in args.reff_range]
+    reff_range = args.reff_range
     n_range = args.n_range
     axisratio_range = args.axisratio_range
     theta_range = args.theta_range
     num_dwarfs = args.num_dwarfs
     psf = args.psf
     windowsize = args.windowsize
+    reff_units = args.reff_units
     positions = args.positions
     subtract = args.subtract
     gallery = args.gallery
@@ -204,10 +216,17 @@ if __name__ == '__main__':
         signature = filenamestr + timestr
     root = Path.cwd().parents[3]
     outdir = Path(root/'OUTPUT'/signature)
-    outdir.mkdir(parents=True,exist_ok=True)
-    frpath = Path(root/'PYTHON'/'COMPLETION'/'MATCH_CATALOG'/'ARTIFICIAL'/'DEC_filter_response.txt')  
+    try:
+        outdir.mkdir(parents=True)
+    except FileExistsError:
+        shutil.rmtree(outdir)
+        outdir.mkdir(parents=True)
+    frpath = Path(root/'PYTHON'/'COMPLETION'/'MATCH_CATALOG'/'ARTIFICIAL'/'DEC_filter_response.txt') 
 
-    get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, subtract, gallery, verbose, outdir, frpath, signature)
+    with open(outdir/f'{signature}_cmdline_args.txt', 'w') as f:
+        json.dump(args.__dict__, f, indent=2)
+
+    get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, reff_units, positions, subtract, gallery, verbose, outdir, frpath, signature)
 
 else:
     from .artificial.create_convolve_dwarfs import create_convolve_dwarfs

@@ -1,6 +1,8 @@
 import argparse
 import subprocess
 import time
+import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -106,8 +108,15 @@ if __name__ == '__main__':
         signature = filenamestr + timestr
     root = Path.cwd().parents[3]
     outdir = Path(root/'OUTPUT'/signature)
-    outdir.mkdir(parents=True,exist_ok=True)
+    try:
+        outdir.mkdir(parents=True)
+    except FileExistsError:
+        shutil.rmtree(outdir)
+        outdir.mkdir(parents=True)
     sexdir = Path(root/'PYTHON'/'COMPLETION'/'MATCH_CATALOG'/'DETECTION'/'sextractor')  
+
+    with open(outdir/f'{signature}_cmdline_args.txt', 'w') as f:
+        json.dump(args.__dict__, f, indent=2)
 
     get_detection_catalog(data, weight_params, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, gallery, verbose, outdir, sexdir, signature)
 

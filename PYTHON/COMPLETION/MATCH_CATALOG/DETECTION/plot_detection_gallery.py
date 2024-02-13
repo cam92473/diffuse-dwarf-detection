@@ -67,10 +67,10 @@ def plot_firstgroup(imgarr,savename,artificial):
 
     if artificial:
         axl[0,0].imshow(imgarr[1],cmap='cividis',origin='lower',norm=LogNorm(vmin=imgarr[0].mean()-0.2*imgarr[0].std(),vmax=imgarr[0].mean()+0.5*imgarr[0].std(),clip=True))
-        axl[0,0].set_title('artificial dwarfs only')
+        axl[0,0].set_title('artificial dwarfs')
         axl[0,0].get_xaxis().set_visible(False)
         axl[0,0].get_yaxis().set_visible(False)
-        axl[0,1].set_title('original image + arfificial dwarfs')
+        axl[0,1].set_title('original image with artificial dwarfs')
     else:
         axl[0,0].remove()
 
@@ -90,7 +90,7 @@ def plot_detection_gallery(data,outdir,savename):
         imgarr[0] = hdul[0].data
     for f in outdir.glob('*.fits'):
         with fits.open(f) as hdul:
-            if f.name.split('.')[0][-15:] == 'artificial_only':
+            if f.name.split('.')[0][-8:] == 'stickers':
                 imgarr[1] = hdul[0].data
             if f.name.split('.')[0][-12:] == 'segment_objs':
                 imgarr[2] = hdul[0].data

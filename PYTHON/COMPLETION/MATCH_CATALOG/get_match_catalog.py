@@ -3,6 +3,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 import os
+import json
+import shutil
 
 def clean_up_files(outdir, signature, verbose):
     if verbose:
@@ -19,7 +21,7 @@ def clean_up_files(outdir, signature, verbose):
         t2 = time.perf_counter()
         print(f"cleaning time: {t2-t1}")
 
-def get_match_catalog(data, weight_params, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, num_runs, psf, positions, subtract, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, no_clean, gallery, verbose, outdir, sexdir, frpath, signature):
+def get_match_catalog(data, weight_params, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, num_runs, psf, reff_units, positions, subtract, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, no_clean, gallery, verbose, outdir, sexdir, frpath, signature):
 
     '''maxdilation = 9
     windowsize = 50
@@ -42,7 +44,7 @@ def get_match_catalog(data, weight_params, phot_filter, mag_range, reff_range, n
         rundir = Path(outdir/f'run_{run_no}')
         rundir.mkdir(parents=True,exist_ok=True)
         rundirs.append(rundir)
-        get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, positions, subtract, gallery, verbose, rundir, frpath, signature)
+        get_artificial_catalog(data, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, psf, windowsize, reff_units, positions, subtract, gallery, verbose, rundir, frpath, signature)
         get_detection_catalog(rundir/f'{signature}_filled.fits', weight_params, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, gallery, verbose, rundir, sexdir, signature)    
         if not no_clean:
             clean_up_files(rundir, signature, verbose)
@@ -66,13 +68,14 @@ if __name__ == "__main__":
     parser.add_argument('weight', help='Path of the weight image, including the .fits extension. If you do not want to use a weight image, enter NO-WEIGHT.')
     parser.add_argument('phot_filter', choices=['u','g','r','i','z'], help='The photometric filter the data was taken in. This is needed to apply the correct zero point magnitude when constructing the artificial dwarfs.')
     parser.add_argument('mag_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the apparent magnitude of the artificial dwarfs.')
-    parser.add_argument('reff_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the effective radius of the artificial dwarfs. Provide these numbers in arcseconds. reff, the effective radius, is the radial distance inside of which half of the light of the dwarf is contained. reff and n are used to calculate the other two Sersic parameters, I0 and bn.')
+    parser.add_argument('reff_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the effective radius of the artificial dwarfs, which is the radial distance inside of which half of the light of the dwarf is contained. reff and n are used to calculate the other two Sersic parameters, I0 and bn.')
     parser.add_argument('n_range', nargs=2, type=float, help='Two numbers (low and high) that specify the range of the Sersic index n of the artificial dwarfs. Lower values of n correspond to profiles where the light is more centrally concentrated. reff and n are used to calculate the other two Sersic parameters, I0 and bn.')
     parser.add_argument('axisratio_range', nargs=2, type=float, help='Two numbers (low and high) that specify the axis ratio range of the artificial dwarfs. The axis ratio takes a value from 0 to 1, where 0 is unphysical and 1 is perfectly circular. (It is the complement of the ellipticity)')
     parser.add_argument('theta_range', nargs=2, type=float, help='Two numbers (low and high) that specify the angular offset range of artificial dwarfs, in degrees. Enter 0 and 360 if you want to include all possible angles.')
     parser.add_argument('num_dwarfs', type=int, help='The number of artificial dwarfs to insert into the data image.')
     parser.add_argument('num_runs', type=int, help='The number of times to construct artificial and detection catalogs using the same ranges of artificial dwarf parameters.')
     parser.add_argument('psf', help='Path to the psf used to convolve the artificial dwarfs. If you do not wish to convolve the dwarfs, enter NO-PSF.')
+    parser.add_argument('-reff_units', choices=['as','px','pc'], default='as', help='The units of the previously inputted values for reff_range. Can be arcseconds ("as"), pixels ("px"), or parsecs ("pc"). Default is arcseconds. The program converts between these values using the distance to Centaurus A (3.8E6 pc) and the resolution of DECam (0.2637 "/pix).')
     parser.add_argument('-positions', nargs='*', help='Optional argument that allows you to specify the coordinates of the dwarfs (i.e., positions are non random). List arguments in the format -positions x y x y ...')
     parser.add_argument('-subtract', action='store_true', default=False, help='If toggled, subtracts the created artificial dwarf from the image instead of adding it. Can be useful in testing.')
     parser.add_argument('-obj_params', nargs=2, default=[10,30], help='Enter two numbers for the DETECT_MINAREA and DETECT_THRESH sextractor parameters used to generate the segmentation image which later gets turned into a mask.')
@@ -102,6 +105,7 @@ if __name__ == "__main__":
     num_dwarfs = args.num_dwarfs
     num_runs = args.num_runs
     psf = args.psf
+    reff_units = args.reff_units
     positions = args.positions
     subtract = args.subtract
     obj_params = args.obj_params
@@ -122,11 +126,18 @@ if __name__ == "__main__":
         signature = filenamestr + timestr
     root = Path.cwd().parents[2]
     outdir = Path(root/'OUTPUT'/signature)
-    outdir.mkdir(parents=True,exist_ok=True)
+    try:
+        outdir.mkdir(parents=True)
+    except FileExistsError:
+        shutil.rmtree(outdir)
+        outdir.mkdir(parents=True)
     sexdir = Path(root/'PYTHON'/'COMPLETION'/'MATCH_CATALOG'/'DETECTION'/'sextractor')
     frpath = Path(root/'PYTHON'/'COMPLETION'/'MATCH_CATALOG'/'ARTIFICIAL'/'DEC_filter_response.txt') 
 
-    get_match_catalog(data, weight_params, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, num_runs, psf, positions, subtract, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, no_clean, gallery, verbose, outdir, sexdir, frpath, signature)
+    with open(outdir/f'{signature}_cmdline_args.txt', 'w') as f:
+        json.dump(args.__dict__, f, indent=2)
+
+    get_match_catalog(data, weight_params, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, num_runs, psf, reff_units, positions, subtract, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, no_clean, gallery, verbose, outdir, sexdir, frpath, signature)
 
 else:
 

@@ -1,6 +1,8 @@
 import argparse
 import numpy as np
 import time
+import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -24,7 +26,7 @@ def create_array(pixeldirs,num_rows,num_cols,signature):
 
     return completion_array
 
-def build_completion_array(data, weight_params, phot_filter, mag_bin_vals, reff_bin_vals, n_range, axisratio_range, theta_range, num_dwarfs, num_runs, psf, positions, subtract, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, no_clean, gallery, verbose, outdir, sexdir, frpath, saveimdir, signature):
+def build_completion_array(data, weight_params, phot_filter, mag_bin_vals, reff_bin_vals, n_range, axisratio_range, theta_range, num_dwarfs, num_runs, psf, reff_units, positions, subtract, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, no_clean, gallery, verbose, outdir, sexdir, frpath, saveimdir, signature):
 
     if verbose:
         print("Starting to build completion array")
@@ -44,7 +46,7 @@ def build_completion_array(data, weight_params, phot_filter, mag_bin_vals, reff_
             pixeldir = Path(outdir/f'mag{mag_range[0]}-{mag_range[1]}'/f'reff{reff_range[0]}-{reff_range[1]}')
             pixeldir.mkdir(parents=True,exist_ok=True)
             pixeldirs.append(pixeldir)
-            get_match_catalog(data, weight_params, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, num_runs, psf, positions, subtract, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, no_clean, gallery, verbose, pixeldir, sexdir, frpath, signature)
+            get_match_catalog(data, weight_params, phot_filter, mag_range, reff_range, n_range, axisratio_range, theta_range, num_dwarfs, num_runs, psf, reff_units, positions, subtract, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, no_clean, gallery, verbose, pixeldir, sexdir, frpath, signature)
 
     completion_array = create_array(pixeldirs,num_rows,num_cols,signature)
     np.savetxt(outdir/f"{signature}_completion.arr",completion_array,header=f"{mag_bin_vals[0]} {mag_bin_vals[1]} {mag_bin_vals[2]} {reff_bin_vals[0]} {reff_bin_vals[1]} {reff_bin_vals[2]}")
@@ -70,6 +72,7 @@ if __name__ == "__main__":
     parser.add_argument('num_dwarfs', type=int, help='The number of artificial dwarfs to insert into the data image.')
     parser.add_argument('num_runs', type=int, help='The number of times to construct artificial and detection catalogs using the same ranges of artificial dwarf parameters.')
     parser.add_argument('psf', help='Path to the psf used to convolve the artificial dwarfs. If you do not wish to convolve the dwarfs, enter NO-PSF.')
+    parser.add_argument('-reff_units', choices=['as','px','pc'], default='as', help='The units of the previously inputted values for reff_range. Can be arcseconds ("as"), pixels ("px"), or parsecs ("pc"). Default is arcseconds. The program converts between these values using the distance to Centaurus A (3.8E6 pc) and the resolution of DECam (0.2637 "/pix).')
     parser.add_argument('-positions', nargs='*', help='Optional argument that allows you to specify the coordinates of the dwarfs (i.e., positions are non random). List arguments in the format -positions x y x y ...')
     parser.add_argument('-subtract', action='store_true', default=False, help='If toggled, subtracts the created artificial dwarf from the image instead of adding it. Can be useful in testing.')
     parser.add_argument('-obj_params', nargs=2, default=[10,30], help='Enter two numbers for the DETECT_MINAREA and DETECT_THRESH sextractor parameters used to generate the segmentation image which later gets turned into a mask.')
@@ -85,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument('--verbose', action='store_true', default=False, help='Displays messages in the terminal.')
 
     args = parser.parse_args()
+
     data = Path(args.data).resolve()
     args = parser.parse_args()
     data = Path(args.data).resolve()
@@ -101,6 +105,7 @@ if __name__ == "__main__":
     num_dwarfs = args.num_dwarfs
     num_runs = args.num_runs
     psf = args.psf
+    reff_units = args.reff_units
     positions = args.positions
     subtract = args.subtract
     obj_params = args.obj_params
@@ -121,9 +126,16 @@ if __name__ == "__main__":
         signature = filenamestr + timestr
     root = Path.cwd().parents[1]
     outdir = Path(root/'OUTPUT'/signature)
-    outdir.mkdir(parents=True,exist_ok=True)
+    try:
+        outdir.mkdir(parents=True)
+    except FileExistsError:
+        shutil.rmtree(outdir)
+        outdir.mkdir(parents=True)
     sexdir = Path(root/'PYTHON'/'COMPLETION'/'MATCH_CATALOG'/'DETECTION'/'sextractor')
     frpath = Path(root/'PYTHON'/'COMPLETION'/'MATCH_CATALOG'/'ARTIFICIAL'/'DEC_filter_response.txt') 
     saveimdir = Path(root/'RESULTS'/'completion_plots')
 
-    build_completion_array(data, weight_params, phot_filter, mag_bin_vals, reff_bin_vals, n_range, axisratio_range, theta_range, num_dwarfs, num_runs, psf, positions, subtract, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, no_clean, gallery, verbose, outdir, sexdir, frpath, saveimdir, signature)
+    with open(outdir/f'{signature}_cmdline_args.txt', 'w') as f:
+        json.dump(args.__dict__, f, indent=2)
+
+    build_completion_array(data, weight_params, phot_filter, mag_bin_vals, reff_bin_vals, n_range, axisratio_range, theta_range, num_dwarfs, num_runs, psf, reff_units, positions, subtract, obj_params, maxdilations, maskfunc, windowsize, dolog, det_params, sigclip, no_clean, gallery, verbose, outdir, sexdir, frpath, saveimdir, signature)

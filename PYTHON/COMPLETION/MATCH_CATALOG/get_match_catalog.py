@@ -11,7 +11,7 @@ def clean_up_files(outdir, signature, verbose):
         print("cleaning up unneeded files...")
         t1 = time.perf_counter()
     os.remove(outdir/f'{signature}_filled.fits')
-    os.remove(outdir/f'{signature}_artificial_only.fits')
+    os.remove(outdir/f'{signature}_stickers.fits')
     os.remove(outdir/f'{signature}_segment_objs.fits')
     os.remove(outdir/f'{signature}_masked.fits')
     os.remove(outdir/f'{signature}_binned.fits')

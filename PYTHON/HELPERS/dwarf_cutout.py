@@ -5,8 +5,9 @@ from astropy.coordinates import SkyCoord
 import argparse
 import re
 import matplotlib.pyplot as plt
+from pathlib import Path
 
-def dwarf_cutout(filename, location, width, height, dwarfname):
+def dwarf_cutout(filename, location, width, height, outpath):
 
     hdul = fits.open(filename)
     primary_hdu = hdul[0]
@@ -32,9 +33,12 @@ def dwarf_cutout(filename, location, width, height, dwarfname):
     primary_hdu.header.update(cutout.wcs.to_header())
     primary_hdu.data = cutout.data
 
-    cutout_filename = '{}.fits'.format(dwarfname)
+    project_root = Path.cwd().parents[1]
+    full_outpath = project_root/outpath
+    outfolder = full_outpath.parents[0]
+    outfolder.mkdir(parents=True,exist_ok=True)
 
-    primary_hdu.writeto(cutout_filename, overwrite=True)
+    primary_hdu.writeto(full_outpath, overwrite=True)
     print("done")
 
 if __name__ == '__main__':

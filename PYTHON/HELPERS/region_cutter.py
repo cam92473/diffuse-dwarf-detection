@@ -7,14 +7,11 @@ from astropy.io import fits
 import gc
 import argparse
 
-def region_cutter(filename):
+def region_cutter(filename, outname):
 
     with fits.open(filename) as hdul:
         data = hdul[0].data
-
-    ax = plt.gca()
-    modest_imshow(ax, data, interpolation='none', origin='lower')
-    plt.show()
+        header = hdul[0].header
 
     r, c = data.shape
 
@@ -167,10 +164,6 @@ def region_cutter(filename):
     bool_mask = total_mask.astype(bool)
     reverse_bool_mask = ~bool_mask
 
-    ax = plt.gca()
-    modest_imshow(ax, reverse_bool_mask, interpolation='none', origin='lower')
-    plt.show()
-
     del(total_mask)
     del(bool_mask)
     gc.collect()
@@ -202,12 +195,11 @@ def region_cutter(filename):
 
     gc.collect()
 
-    print("ha")
+    print("...")
 
     data[bady,badx] = np.nan
 
-    hdu = fits.PrimaryHDU(data)
-    hdu.writeto('cut_image.fits',overwrite=True)
+    fits.writeto(outname,data,header)
     
     print("done")
 
@@ -216,9 +208,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Cut out a region from a larger image and save it as its own fits image.')
     parser.add_argument('filename', help='The filename of the image to cut.')
+    parser.add_argument('outname', help='The new name of the cut file.')
     args = parser.parse_args()
 
-    region_cutter(args.filename)
+    region_cutter(args.filename, args.outname)
 
 
            

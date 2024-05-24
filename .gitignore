@@ -3,4 +3,8 @@ OUTPUT/
 RESULTS/
 SCREENSHOTS/
 PYTHON/CALCULATE_ARRAYS/MASTER_CATALOGS/DETECTION/detection/rgb_image/scabs_TILE4_FILTERSzgu_asinh_v1.jpg
+PYTHON/CALCULATE_ARRAYS/MASTER_CATALOGS/DETECTION/detection/rgb_image/scabs_TILE4_FILTERSzgu_asinh_v1_shadowsadjust.tif
+PYTHON/CALCULATE_ARRAYS/MASTER_CATALOGS/DETECTION/detection/rgb_image/scabs_TILE4_FILTERSzgu_asinh_v1_posterize.tif
+PYTHON/CALCULATE_ARRAYS/MASTER_CATALOGS/DETECTION/detection/rgb_image/scabs_TILE4_FILTERSzgu_asinh_v1_autoequalize.tif
 PYTHON/CALCULATE_ARRAYS/MASTER_CATALOGS/DETECTION/detection/rgb_image/tile4cut_i.fits
+

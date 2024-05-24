@@ -4,7 +4,7 @@ from astropy.io import fits
 import time
 import bottleneck as bn
 
-def stack_blurred_images(output_root, phot_filters, signature, verbose):
+def stack_blurred_images(output_root, phot_filters, stack_mode, signature, verbose):
 
     t1 = time.perf_counter()
 
@@ -17,7 +17,13 @@ def stack_blurred_images(output_root, phot_filters, signature, verbose):
             binnedlist.append(binned_data)
 
     binnedstack = np.asarray(binnedlist)
-    stacked = bn.nanmin(binnedstack,axis=0)
+    #min, median, mean
+    if stack_mode == "mean":
+        stacked = bn.nanmean(binnedstack,axis=0)
+    elif stack_mode == "median":
+        stacked = bn.nanmedian(binnedstack,axis=0)
+    elif stack_mode == "min":
+        stacked = bn.nanmin(binnedstack,axis=0)
     
     t2 = time.perf_counter()
     if verbose:
@@ -44,4 +50,4 @@ if __name__ == "__main__":
     verbose = args.verbose
     wheresave = args.wheresave
 
-    stack_blurred_image(filename,windowindowsize,dolog,testonimage,verbose,wheresave)
+    stack_blurred_images(filename,windowindowsize,dolog,testonimage,verbose,wheresave)

@@ -69,8 +69,8 @@ def main(argv):
       - Let the pixels be slightly distorted relative to the sky.
     """
 
-    gal_flux = 68000
-    #gal_flux = 109294        # ADU  ("Analog-to-digital units", the units of the numbers on a CCD)
+    #gal_flux = 67500
+    gal_flux = 109294        # ADU  ("Analog-to-digital units", the units of the numbers on a CCD)
     n = 0.8001                  #
     re = 15.2273               # arcsec
     q = 0.8804           # (axis ratio 0 < q < 1)
@@ -107,6 +107,14 @@ def main(argv):
 
     with fits.open('KK98a189.PSF.fits') as hdul:
         data = hdul[0].data
+    print(data.sum())
+    data /= data.sum()
+    #import numpy as np
+    #data = np.ones((75,75))
+    #data[75//2,75//2] = 1
+    #import matplotlib.pyplot as plt
+    #plt.imshow(data)
+    #plt.show()
     psf = galsim.InterpolatedImage(galsim.Image(data,scale=0.263))
 
     final = galsim.Convolve([gal,psf])

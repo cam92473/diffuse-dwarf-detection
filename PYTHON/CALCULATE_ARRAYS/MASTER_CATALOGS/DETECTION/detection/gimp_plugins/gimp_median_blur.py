@@ -5,6 +5,7 @@ def gimp_median_blur(in_path,kernelrad,out_path):
   image = pdb.file_fits_load(in_path, in_path)
   active_layer = pdb.gimp_image_get_active_layer(image)
   pdb.python_gegl(image, active_layer, "median-blur radius=%i percentile=50 high-precision=1" %kernelrad)
+  #pdb.gimp_drawable_levels_stretch(active_layer)
   pdb.file_fits_save(image, active_layer, out_path, out_path)
   pdb.gimp_quit(1)
   

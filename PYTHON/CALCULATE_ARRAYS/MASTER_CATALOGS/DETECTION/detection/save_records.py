@@ -39,7 +39,85 @@ def save_to_jpg(arr,normalize,saveloc,cmap):
     elif normalize == 'none':
         plt.imsave(saveloc,arr,cmap=cmap,origin='lower')
 
-def get_rgb_cutout(output_root,phot_filters,rgb_dir,signature,filter_dir):
+def populate_SDF_dir(output_root,phot_filters,signature,SDF_dir):
+    for photfilt in phot_filters:
+        filt_dir = output_root/photfilt
+        blurred = filt_dir/f'{signature}_4_blurred_{photfilt}.fits'
+        with fits.open(blurred) as hdul:
+            saveloc = SDF_dir/f'{signature}_4_blurred_{photfilt}.jpg'
+            save_to_jpg(hdul[0].data,'log_norm',saveloc,'cividis')
+    with fits.open(output_root/f'{signature}_5_stacked.fits') as hdul:
+        saveloc = SDF_dir/f'{signature}_5_stacked.jpg'
+        save_to_jpg(hdul[0].data,'log_norm',saveloc,'cividis')
+    with fits.open(output_root/f'{signature}_6_raw_detections.fits') as hdul:
+        saveloc = SDF_dir/f'{signature}_6_raw_detections.jpg'
+        save_to_jpg(hdul[0].data,'boundary_norm',saveloc,'cividis')  
+    with fits.open(output_root/f'{signature}_7_filtered_detections.fits') as hdul:
+        saveloc = SDF_dir/f'{signature}_7_filtered_detections.jpg'
+        save_to_jpg(hdul[0].data,'boundary_norm',saveloc,'cividis')    
+
+def populate_MB_dir(output_root,phot_filters,signature,MB_dir):
+    for photfilt in phot_filters:
+        MB_filt_dir = MB_dir/photfilt
+        MB_filt_dir.mkdir()
+        filt_dir = output_root/photfilt
+        fits_images = natsorted(glob.glob(str(filt_dir/'*.fits')))
+        tags = ['1a_data','1b_weight','1c_background','2a_segmap','2b_filtered','2c_dilated','2d_hot_pixels','2e_combined','3_masked_data','4_blurred']
+        norms = ['log_norm','none','none','boundary_norm','boundary_norm','boundary_norm','boundary_norm','boundary_norm','log_norm','log_norm']
+        for i in range(len(tags)):
+            with fits.open(fits_images[i]) as hdul:
+                saveloc = MB_filt_dir/f'{signature}_{tags[i]}_{photfilt}.jpg'
+                save_to_jpg(hdul[0].data,norms[i],saveloc,'cividis')
+               
+def setup_dirs(output_root):
+    MB_dir = output_root/'records'/'mask_blur'
+    MB_dir.mkdir(parents=True,exist_ok=True)
+    SDF_dir = output_root/'records'/'stack_detect_filter'
+    SDF_dir.mkdir(parents=True,exist_ok=True)
+    CNN_dir = output_root/'records'/'CNN'
+    
+    return MB_dir, SDF_dir, CNN_dir
+
+
+def save_records_func(output_root,phot_filters,rgb_dir,signature,verbose):
+
+    t1 = time.perf_counter()
+
+    MB_dir, SDF_dir, CNN_dir = setup_dirs(output_root)
+
+    populate_MB_dir(output_root,phot_filters,signature,MB_dir)
+    populate_SDF_dir(output_root,phot_filters,signature,SDF_dir)
+    #populate_CNN_dir(output_root,phot_filters,rgb_dir,signature,filter_dir)
+
+    t2 = time.perf_counter()
+    if verbose:
+        print(f"saving records: {t2-t1}")
+
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('output_root', help='Path to the image input into the detection algorithm.')
+    parser.add_argument('phot_filters', help='Path to the image input into the detection algorithm.')
+    parser.add_argument('signature', help='Specify a new file name if you want to save the replotted image.')
+    parser.add_argument('-saveim_folder', help='Specify a new file name if you want to save the replotted image.')
+    
+
+    args = parser.parse_args()
+    output_root = Path(args.output_root).resolve()
+    phot_filters = list(args.phot_filters)
+    if args.saveim_folder is not None:
+        saveim_folder = Path(args.saveim_folder).resolve()
+    else:
+        saveim_folder = None
+    signature = args.signature
+
+    display_algorithm_steps(output_root,phot_filters,signature,saveim_folder)
+
+    '''
+    LEGACY CODE
+
+    def get_rgb_cutout(output_root,phot_filters,rgb_dir,signature,filter_dir):
     with fits.open(output_root/phot_filters[0]/f'{signature}_1a_data_{phot_filters[0]}.fits') as hdul:
         data = hdul[0].data
         data_header = hdul[0].header
@@ -112,7 +190,7 @@ def populate_filter_dir(output_root,phot_filters,rgb_dir,signature,filter_dir):
         saveloc = filter_dir/f'{signature}_blurred.jpg'    
         save_to_jpg(hdul[0].data,'log_norm',saveloc,'binary_r')
     data_blurred = PIL.Image.open(filter_dir/f'{signature}_blurred.jpg')
-    with fits.open(output_root/phot_filters[0]/f'{signature}_3_data_masked_{phot_filters[0]}.fits') as hdul:
+    with fits.open(output_root/phot_filters[0]/f'{signature}_3_masked_data_{phot_filters[0]}.fits') as hdul:
         saveloc = filter_dir/f'{signature}_masked.jpg'    
         save_to_jpg(hdul[0].data,'log_norm',saveloc,'binary_r')
     data_masked = PIL.Image.open(filter_dir/f'{signature}_masked.jpg')
@@ -141,77 +219,7 @@ def populate_filter_dir(output_root,phot_filters,rgb_dir,signature,filter_dir):
     filtered_detections_csv = csv_list[-1]
     make_edge_composites(filtered_detections_csv,rawdets_data,'white',data_rgb,data_blurred,data_masked,signature,filter_dir,save_to_cumulative=True)
 
-def populate_stackdetect_dir(output_root,phot_filters,signature,stackdetect_dir):
-    for photfilt in phot_filters:
-        filt_dir = output_root/photfilt
-        blurred = filt_dir/f'{signature}_4_blurred_{photfilt}.fits'
-        with fits.open(blurred) as hdul:
-            saveloc = stackdetect_dir/f'{signature}_4_blurred_{photfilt}.jpg'
-            save_to_jpg(hdul[0].data,'log_norm',saveloc,'cividis')
-    with fits.open(output_root/f'{signature}_5_stacked.fits') as hdul:
-        saveloc = stackdetect_dir/f'{signature}_5_stacked.jpg'
-        save_to_jpg(hdul[0].data,'log_norm',saveloc,'cividis')
-    with fits.open(output_root/f'{signature}_6_raw_detections.fits') as hdul:
-        saveloc = stackdetect_dir/f'{signature}_6_raw_detections.jpg'
-        save_to_jpg(hdul[0].data,'boundary_norm',saveloc,'cividis')      
-
-def populate_maskblur_dir(output_root,phot_filters,signature,maskblur_dir):
-    for photfilt in phot_filters:
-        maskblur_filt_dir = maskblur_dir/photfilt
-        maskblur_filt_dir.mkdir()
-        filt_dir = output_root/photfilt
-        fits_images = natsorted(glob.glob(str(filt_dir/'*.fits')))
-        tags = ['1a_data','1b_weight','1c_background','2a_segment_surf','2b_segment_deep','2c_brightobj_mask','2d_brightobj_masked','2e_segment_star','2f_star_mask','2g_segmap_deep_masked','3_data_masked','4_blurred']
-        norms = ['log_norm','none','none','boundary_norm','boundary_norm','boundary_norm','log_norm','boundary_norm','boundary_norm','boundary_norm','log_norm','log_norm']
-        #colours = ['cividis','cividis','cividis','gist_ncar','gist_ncar','cividis','cividis','gist_ncar','cividis','cividis','cividis','cividis']
-        for i in range(len(tags)):
-            with fits.open(fits_images[i]) as hdul:
-                saveloc = maskblur_filt_dir/f'{signature}_{tags[i]}_{photfilt}.jpg'
-                save_to_jpg(hdul[0].data,norms[i],saveloc,'cividis')
-               
-def setup_dirs(output_root):
-    maskblur_dir = output_root/'records'/'mask_and_blur'
-    maskblur_dir.mkdir(parents=True,exist_ok=True)
-    stackdetect_dir = output_root/'records'/'stack_and_detect'
-    stackdetect_dir.mkdir(parents=True,exist_ok=True)
-    filter_dir = output_root/'records'/'filter'
-    (filter_dir/'individual').mkdir(parents=True,exist_ok=True)
-    (filter_dir/'cumulative').mkdir(parents=True,exist_ok=True)
     
-    return maskblur_dir, stackdetect_dir, filter_dir
-
-
-def save_records_func(output_root,phot_filters,rgb_dir,signature,verbose):
-
-    t1 = time.perf_counter()
-
-    maskblur_dir, stackdetect_dir, filter_dir = setup_dirs(output_root)
-
-    populate_maskblur_dir(output_root,phot_filters,signature,maskblur_dir)
-    populate_stackdetect_dir(output_root,phot_filters,signature,stackdetect_dir)
-    populate_filter_dir(output_root,phot_filters,rgb_dir,signature,filter_dir)
-
-    t2 = time.perf_counter()
-    if verbose:
-        print(f"saving records: {t2-t1}")
-
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description='')
-    parser.add_argument('output_root', help='Path to the image input into the detection algorithm.')
-    parser.add_argument('phot_filters', help='Path to the image input into the detection algorithm.')
-    parser.add_argument('signature', help='Specify a new file name if you want to save the replotted image.')
-    parser.add_argument('-saveim_folder', help='Specify a new file name if you want to save the replotted image.')
     
-
-    args = parser.parse_args()
-    output_root = Path(args.output_root).resolve()
-    phot_filters = list(args.phot_filters)
-    if args.saveim_folder is not None:
-        saveim_folder = Path(args.saveim_folder).resolve()
-    else:
-        saveim_folder = None
-    signature = args.signature
-
-    display_algorithm_steps(output_root,phot_filters,signature,saveim_folder)
+    
+    '''

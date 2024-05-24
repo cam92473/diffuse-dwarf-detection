@@ -8,7 +8,7 @@ def get_global_extrema(output_root,phot_filters,signature):
     extrema = []
     for photfilt in phot_filters:
         filt_dir = output_root/photfilt
-        masked_path = filt_dir/f'{signature}_3_data_masked_{photfilt}.fits'
+        masked_path = filt_dir/f'{signature}_3_masked_data_{photfilt}.fits'
         with fits.open(masked_path) as hdul:
             data = hdul[0].data
         extrema.append(data.min())
@@ -24,7 +24,7 @@ def prepare_masked_images_for_gimp(output_root,phot_filters,signature,verbose):
     global_extrema = get_global_extrema(output_root,phot_filters,signature)
     for photfilt in phot_filters:
         filt_dir = output_root/photfilt
-        masked_path = filt_dir/f'{signature}_3_data_masked_{photfilt}.fits'
+        masked_path = filt_dir/f'{signature}_3_masked_data_{photfilt}.fits'
         with fits.open(masked_path) as hdul:
             data = hdul[0].data
         data[0,0] = global_extrema[0]

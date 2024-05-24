@@ -6,14 +6,14 @@ import numpy as np
 from scipy.ndimage import median_filter
 from astropy.io import fits
 
-def blur_image(filt_dir, photfilt, kernelrad, signature, verbose):
+def blur_image(filt_dir, photfilt, blur_radius, signature, verbose):
     
     t1 = time.perf_counter()
 
-    masked_path = str(filt_dir/f'{signature}_3_data_masked_{photfilt}.fits')
+    masked_path = str(filt_dir/f'{signature}_3_masked_data_{photfilt}.fits')
     binned_path = str(filt_dir/f'{signature}_4_blurred_{photfilt}.fits')
-    subprocess.call(f"flatpak run org.gimp.GIMP -idf -b '(python-fu-median-blur RUN-NONINTERACTIVE \"{masked_path}\" {kernelrad} \"{binned_path}\")'", stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True)
-
+    subprocess.call(f"flatpak run org.gimp.GIMP -idf -b '(python-fu-median-blur RUN-NONINTERACTIVE \"{masked_path}\" {blur_radius} \"{binned_path}\")'", stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT, shell=True)
+    
     t2 = time.perf_counter()
     if verbose:
         print(f"blurring {photfilt}: {t2-t1}")
@@ -42,9 +42,9 @@ if __name__ == "__main__":
     '''
     LEGACY CODE
     
-    #gimp_blur = f'image = pdb.file_fits_load("{masked_path}", "{masked_path}");active_layer = pdb.gimp_image_get_active_layer(image);pdb.python_gegl(image, active_layer, "median-blur radius={kernelrad} percentile=50 high-precision=1")'
+    #gimp_blur = f'image = pdb.file_fits_load("{masked_path}", "{masked_path}");active_layer = pdb.gimp_image_get_active_layer(image);pdb.python_gegl(image, active_layer, "median-blur radius={blur_radius} percentile=50 high-precision=1")'
     blur_path = str(Path.cwd()/'detection')
-    stuff = subprocess.check_output(f"flatpak run org.gimp.GIMP -idf --batch-interpreter python-fu-eval -b 'import sys;sys.path.append(\"{blur_path}\");import gimp_median_blur as gmb;gmb.gimp_median_blur(\"{masked_path}\",{kernelrad})' -b 'pdb.gimp_quit(1)'", stdout=dev.NULL, shell=True)    
+    stuff = subprocess.check_output(f"flatpak run org.gimp.GIMP -idf --batch-interpreter python-fu-eval -b 'import sys;sys.path.append(\"{blur_path}\");import gimp_median_blur as gmb;gmb.gimp_median_blur(\"{masked_path}\",{blur_radius})' -b 'pdb.gimp_quit(1)'", stdout=dev.NULL, shell=True)    
     
 
     kernel = np.ones((61,61),dtype=np.uint8)

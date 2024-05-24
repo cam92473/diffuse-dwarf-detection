@@ -1,11 +1,109 @@
-import numpy as np
-import argparse
-import pandas as pd
+import subprocess
 import time
+import argparse
 from pathlib import Path
+import pandas as pd
+import os
+import numpy as np
+from astropy.io import fits
 from astropy.stats import sigma_clip
 
-def photometry_filter(det,csv_fold,signature):
+def filter_detections(output_root,csv,csv_fold,segmap,signature,verbose):
+
+    t1 = time.perf_counter()
+
+    flags = csv['FLAGS']
+    flagswin = csv['FLAGS_WIN']
+    flagged = (flags >= 16) | (flagswin > 8)
+
+    reduced_csv = csv[~flagged]
+    number = reduced_csv['NUMBER']
+
+    isoarea = reduced_csv['ISOAREA_IMAGE']
+    large = isoarea >= np.percentile(isoarea,90)
+    #large = sigma_clip(isoarea,sigma=3).mask & (number > 0)
+
+    snrwin = reduced_csv['SNR_WIN']
+    #high_flux = sigma_clip(snrwin,sigma=3.5,maxiters=1).mask & (number > 0)
+    bright = snrwin >= np.percentile(snrwin,90)
+
+    ellipticity = reduced_csv['ELLIPTICITY']
+    round = (ellipticity <= 0.4)
+
+    fluxmax = reduced_csv['FLUX_MAX']
+    #high_sb = sigma_clip(fluxmax,sigma=4,maxiters=1).mask & (number > 0)
+    #bright_pixels = fluxmax > np.percentile(fluxmax,90)
+
+    halflight_radius = reduced_csv['FLUX_RADIUS']
+    scatteredness = halflight_radius**2/isoarea
+    not_scattered = scatteredness < np.percentile(scatteredness,20)
+
+    filtered_csv = csv[~flagged & round]
+    filtered_csv.to_csv(csv_fold/f'{signature}_filtered_detections.csv',index=False)
+
+    mask = np.isin(segmap,filtered_csv['NUMBER'])
+    filtered_detections = segmap.copy()
+    filtered_detections[~mask] = 0
+    fits.writeto(output_root/f'{signature}_7_filtered_detections.fits',filtered_detections,overwrite=True)
+
+    t2 = time.perf_counter()
+    if verbose:
+        print(f"filtering objects: {t2-t1}")
+
+
+def source_extractor_call(output_root,sex_dir,detect_params,signature,verbose):
+    t1 = time.perf_counter()
+    detect_minarea = detect_params[0]
+    detect_thresh = detect_params[1]
+    subprocess.call(f"source-extractor {output_root/f'{signature}_5_stacked.fits'} -c detect.sex -DETECT_MINAREA {detect_minarea} -DETECT_THRESH {detect_thresh} -ANALYSIS_THRESH {detect_thresh} -CHECKIMAGE_NAME {output_root/f'{signature}_6_raw_detections.fits'} -CATALOG_NAME {output_root/f'{signature}_raw_detections.catalog'}", shell=True, cwd=sex_dir)
+    with fits.open(output_root/f'{signature}_6_raw_detections.fits') as hdul:
+        segmap = hdul[0].data
+    t2 = time.perf_counter()
+    if verbose:
+        print(f'detecting objects: {t2-t1}')
+
+    return segmap
+
+def get_csv(output_root,signature):
+    cat = pd.read_table(output_root/f'{signature}_raw_detections.catalog',sep='\s+',escapechar='#', header=None)
+    header = ['NUMBER','ALPHA_J2000','DELTA_J2000','X_IMAGE','Y_IMAGE','FLUX_RADIUS','MAG_AUTO','MAGERR_AUTO','FLUX_ISO','FLUXERR_ISO','MAG_ISO','MAGERR_ISO','FLUX_ISOCOR','FLUXERR_ISOCOR','MAG_ISOCOR','MAGERR_ISOCOR','FLUX_WIN','MAG_WIN','SNR_WIN','FLUX_GROWTH','FLUX_GROWTHSTEP','ELLIPTICITY','CLASS_STAR','BACKGROUND','FLUX_MAX','ISOAREA_IMAGE','XPEAK_IMAGE','YPEAK_IMAGE','XMIN_IMAGE','YMIN_IMAGE','XMAX_IMAGE','YMAX_IMAGE','XPEAK_FOCAL','YPEAK_FOCAL','X_FOCAL','Y_FOCAL','X2_IMAGE','Y2_IMAGE','CXX_IMAGE','CYY_IMAGE','CXY_IMAGE','CXXWIN_IMAGE','CYYWIN_IMAGE','CXYWIN_IMAGE','FLAGS','FLAGS_WIN','ISO0','ISO1','ISO2','ISO3','ISO4','ISO5','ISO6','ISO7','FWHM_IMAGE']
+    csv_fold = output_root/'csv'
+    csv_fold.mkdir(exist_ok=True,parents=True)
+    cat.to_csv(csv_fold/f'{signature}_raw_detections.csv',index=False,header=header)
+    os.remove(output_root/f'{signature}_raw_detections.catalog')
+    csv = pd.read_csv(csv_fold/f'{signature}_raw_detections.csv')
+    
+    return csv, csv_fold
+
+def detect_objects(output_root, sex_dir, detect_params, signature, verbose):
+
+    segmap = source_extractor_call(output_root,sex_dir,detect_params,signature,verbose)
+    csv, csv_fold = get_csv(output_root,signature)
+    filter_detections(output_root,csv,csv_fold,segmap,signature,verbose)
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('output_root', help='')
+    parser.add_argument('sex_dir', help='')
+    parser.add_argument('-detect_params', nargs=2, default=[10,5], help='Enter two numbers for the DETECT_MINAREA and DETECT_THRESH sextractor parameters used when performing detection on the binned image to obtain the raw (unfiltered) detections.')
+    parser.add_argument('signature', help='')
+    parser.add_argument('--verbose', action='store_true', default=False, help='')
+
+    args = parser.parse_args()
+    output_root = Path(args.output_root).resolve()
+    sex_dir = Path(args.sex_dir).resolve()
+    detect_params = args.detect_params
+    signature = args.signature
+    verbose = args.verbose
+
+    get_blurred_detections(output_root,sex_dir,detect_params,signature,verbose)
+
+
+    '''
+    LEGACY CODE
+
+    def photometry_filter2(det,csv_fold,signature):
     magauto = det['MAG_AUTO']
     magauto_clip = sigma_clip(magauto,sigma=10,masked=False)
     magmean = np.mean(magauto_clip)
@@ -113,39 +211,4 @@ def junk_filter(det,csv_fold,signature):
     det[flag_win_11].to_csv(csv_fold/f'{signature}_19_flag_win11.csv',index=False)
 
     return junk_mask
-
-def filter_detections(output_root,signature,verbose):
-
-    t1 = time.perf_counter()
-
-    csv_fold = output_root/'csv'
-    det = pd.read_csv(csv_fold/f'{signature}_0_raw_detections.csv')
-    junk_mask = junk_filter(det,csv_fold,signature)
-    morphology_mask = morphology_filter(det,csv_fold,signature)
-    photometry_mask = photometry_filter(det,csv_fold,signature)
-    total_mask = junk_mask | morphology_mask | photometry_mask
-    filtered = det[~total_mask]
-    filtered.to_csv(csv_fold/f'{signature}_28_filtered_detections.csv',index=False)
-
-    t2 = time.perf_counter()
-    if verbose:
-        print(f"filtering: {t2-t1}")
-    
-if __name__ == '__main__':
-
-    parser = argparse.ArgumentParser(description='')
-    parser.add_argument('output_root', help='Filename of the original image.')
-    parser.add_argument('signature', help='Filename of the original image.')
-    parser.add_argument('--verbose', action='store_true', default=False, help='Filename of the original image.')
-
-    args = parser.parse_args()
-    output_root = Path(args.output_root).resolve()
-    verbose = args.verbose
-    signature = args.signature
-
-    filter_detections(output_root,signature,verbose)
-
-
-    #bgq1, bgq3 = np.percentile(det['BACKGROUND'],25), np.percentile(det['BACKGROUND'],75)
-    #bgiqr = bgq3-bgq1
-    #bg_not_outlier = ((det['BACKGROUND']>(bgq1-10*bgiqr)) & (det['BACKGROUND']<(bgq3+10*bgiqr)))
+    '''

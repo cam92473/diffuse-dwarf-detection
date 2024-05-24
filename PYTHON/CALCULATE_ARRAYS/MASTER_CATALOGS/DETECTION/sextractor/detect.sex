@@ -4,18 +4,18 @@
  
 #-------------------------------- Catalog ------------------------------------
  
-CATALOG_NAME     star.catalog         # name of the output catalog
+CATALOG_NAME     888       # name of the output catalog
 CATALOG_TYPE     ASCII        # NONE,ASCII,ASCII_HEAD, ASCII_SKYCAT,
                                   # ASCII_VOTABLE, FITS_1.0 or FITS_LDAC
-PARAMETERS_NAME  star.param       # name of the file containing catalog contents
+PARAMETERS_NAME  detect.param  # name of the file containing catalog contents
  
 #------------------------------- Extraction ----------------------------------
  
 DETECT_TYPE      CCD            # CCD (linear) or PHOTO (with gamma correction)
 DETECT_MINAREA   888              # min. # of pixels above threshold
 
-DETECT_THRESH    888            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
-ANALYSIS_THRESH  1.5            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+DETECT_THRESH    888             # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+ANALYSIS_THRESH  888            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
  
 FILTER           Y              # apply filter for detection (Y or N)?
 FILTER_NAME      default.conv   # name of the file containing the filter
@@ -28,9 +28,9 @@ CLEAN_PARAM      1.0            # Cleaning efficiency
  
 #-------------------------------- WEIGHTing ----------------------------------
 
-WEIGHT_TYPE      MAP_WEIGHT   # type of WEIGHTing: NONE, BACKGROUND,
-                                       # MAP_RMS, MAP_VAR or MAP_WEIGHT
-WEIGHT_IMAGE     888   # weight-map filename
+WEIGHT_TYPE      NONE           # type of WEIGHTing: NONE, BACKGROUND,
+                                # MAP_RMS, MAP_VAR or MAP_WEIGHT
+WEIGHT_IMAGE     none           # weight-map filename
 
 #-------------------------------- FLAGging -----------------------------------
 
@@ -40,7 +40,7 @@ FLAG_TYPE        OR             # flag pixel combination: OR, AND, MIN, MAX
 
 #------------------------------ Photometry -----------------------------------
  
-PHOT_APERTURES   5              # MAG_APER aperture diameter(s) in pixels
+PHOT_APERTURES   3, 5, 10, 20              # MAG_APER aperture diameter(s) in pixels
 PHOT_AUTOPARAMS  2.5, 3.5       # MAG_AUTO parameters: <Kron_fact>,<min_radius>
 PHOT_PETROPARAMS 2.0, 3.5       # MAG_PETRO parameters: <Petrosian_fact>,
                                 # <min_radius>
@@ -63,19 +63,19 @@ STARNNW_NAME     default.nnw    # Neural-Network_Weight table filename
  
 #------------------------------ Background -----------------------------------
  
-BACK_TYPE        MANUAL           # AUTO or MANUAL
+BACK_TYPE        AUTO           # AUTO or MANUAL
 BACK_VALUE       0.0            # Default background value in MANUAL mode
-BACK_SIZE        64             # Background mesh: <size> or <width>,<height>
+BACK_SIZE        256             # Background mesh: <size> or <width>,<height>
 BACK_FILTERSIZE  3              # Background filter: <size> or <width>,<height>
  
 #------------------------------ Check Image ----------------------------------
  
-CHECKIMAGE_TYPE  SEGMENTATION
+CHECKIMAGE_TYPE     SEGMENTATION         
                                 # can be NONE, BACKGROUND, BACKGROUND_RMS,
                                 # MINIBACKGROUND, MINIBACK_RMS, -BACKGROUND,
                                 # FILTERED, OBJECTS, -OBJECTS, SEGMENTATION,
                                 # or APERTURES
-CHECKIMAGE_NAME  888    # Filename for the check-image
+CHECKIMAGE_NAME     888        # Filename for the check-image
  
 #--------------------- Memory (change with caution!) -------------------------
  

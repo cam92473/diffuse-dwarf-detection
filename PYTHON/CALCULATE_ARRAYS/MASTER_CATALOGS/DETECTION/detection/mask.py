@@ -5,7 +5,9 @@ import time
 import subprocess
 import pandas as pd
 import os
+from astropy.stats import sigma_clip
 from scipy.ndimage import binary_dilation
+import numpy as np
 
 def get_circular_kernel(rad):
     kernel = np.zeros((2*rad+1)**2).reshape(2*rad+1,2*rad+1)
@@ -22,138 +24,117 @@ def dilate_mask(mask,rad):
 
     return dilated
 
-def apply_mask(data,mask,background):
-    noise = np.random.normal(0,0.5*np.nanstd(data[~mask]),size=data.shape)
-    data[mask] = background[mask] + noise[mask]
+def get_hot_pixels_mask(filt_dir,photfilt,signature,dilated_mask):
+    data_path = filt_dir/f'{signature}_1a_data_{photfilt}.fits'
+    with fits.open(data_path) as hdul:
+        data = hdul[0].data
+    temp_data = data.copy()
+    temp_data[dilated_mask] = 0
+    hot_pixels_mask = sigma_clip(temp_data,sigma=10,masked=True).mask
 
-    return data
+    return hot_pixels_mask
 
-def create_brightobj_mask(segmap_surf,segmap_deep,deep_csv):
-    flags_win = deep_csv['FLAGS_WIN']
-    flags_win_mask = ~(flags_win>8)
-    no_win_ids = deep_csv['NUMBER'][flags_win_mask]
-    no_win_mask = np.isin(segmap_deep,no_win_ids)
-    brightobj_ids = np.unique(segmap_deep[segmap_surf>0])
-    brightobj_mask = np.isin(segmap_deep,brightobj_ids)
-    combined_mask = no_win_mask & brightobj_mask
+def apply_masks(filt_dir,photfilt,signature,dilated_mask,hot_pixels_mask,background):
+    data_path = filt_dir/f'{signature}_1a_data_{photfilt}.fits'
+    with fits.open(data_path) as hdul:
+        data = hdul[0].data
+    combined_mask = dilated_mask | hot_pixels_mask
+    noise = np.random.normal(0,0.5*np.nanstd(data[~combined_mask]),size=data.shape)
+    data[combined_mask] = background[combined_mask] + noise[combined_mask]
 
-    return combined_mask
+    return data, combined_mask
 
-def create_star_mask(segmap_star,star_csv):
-    isoareaf = star_csv['ISOAREAF_IMAGE']
-    flags = star_csv['FLAGS']
-    meansize = np.mean(isoareaf)
-    stdsize = np.std(isoareaf)
-    area_mask = isoareaf < meansize + 5*stdsize
-    flag_mask = ~((flags==2) | (flags==3) | (flags==18) | (flags==19)) #these flags indicate deblended objects with possibly incomplete aperture data
-    star_mask = area_mask & flag_mask
-    star_ids = star_csv['NUMBER'][star_mask]
-    star_mask = np.isin(segmap_star,star_ids)
-    dilated_star_mask = dilate_mask(star_mask,5)
+def filter_segmap(segmap,csv,filt_dir,photfilt,signature):
 
-    return dilated_star_mask
+    flags = csv['FLAGS']
+    flagswin = csv['FLAGS_WIN']
+    #flagged = (flags >= 16) | (flagswin >= 8)
+    aperture_data_incomplete = (flags>=16)
+    flagswin_zero = (flagswin == 0)
+    flagswin_eight = (flagswin == 8)
 
-def get_brightobj_segmaps(data_path,weight_path,surf_params,deep_params,sex_dir,filt_dir,photfilt,signature):
-    surf_minarea = surf_params[0]
-    surf_thresh = surf_params[1]
-    deep_minarea = deep_params[0]
-    deep_thresh = deep_params[1]
-    subprocess.call(f"source-extractor {data_path} -c segmentation.sex -WEIGHT_IMAGE {weight_path} -DETECT_MINAREA {surf_minarea} -DETECT_THRESH {surf_thresh} -CHECKIMAGE_NAME {filt_dir/f'{signature}_2a_segmap_surf_{photfilt}.fits'}", shell=True, cwd=sex_dir)
-    subprocess.call(f"source-extractor {data_path} -c segmentation.sex -WEIGHT_IMAGE {weight_path} -DETECT_MINAREA {deep_minarea} -DETECT_THRESH {deep_thresh} -CHECKIMAGE_NAME {filt_dir/f'{signature}_2b_segmap_deep_{photfilt}.fits'} -CATALOG_NAME {filt_dir/f'{signature}_2b_segmap_deep_{photfilt}.catalog'}", shell=True, cwd=sex_dir)
-    with fits.open(filt_dir/f'{signature}_2a_segmap_surf_{photfilt}.fits') as hdul:
-        segmap_surf = hdul[0].data
-    with fits.open(filt_dir/f'{signature}_2b_segmap_deep_{photfilt}.fits') as hdul:
-        segmap_deep = hdul[0].data
+    isoarea = csv['ISOAREA_IMAGE']
+    above_analysis_thresh = isoarea>50
+    
+    reduced_csv = csv[~above_analysis_thresh]
+    number = reduced_csv['NUMBER']
 
-    deep_cat = pd.read_table(filt_dir/f'{signature}_2b_segmap_deep_{photfilt}.catalog',sep='\s+',escapechar='#', header=None)
-    header = ['NUMBER','X_IMAGE','Y_IMAGE','FLAGS_WIN']
-    #seems silly to read cat, delete cat, write csv, and read csv
-    deep_cat.to_csv(filt_dir/f'{signature}_2b_segmap_deep_{photfilt}.csv',index=False,header=header)
-    os.remove(filt_dir/f'{signature}_2b_segmap_deep_{photfilt}.catalog')
-    deep_csv = pd.read_csv(filt_dir/f'{signature}_2b_segmap_deep_{photfilt}.csv')
+    background = reduced_csv['BACKGROUND']
+    high_background = (sigma_clip(background,sigma=5).mask) & (number > 0) #the latter condition serves to coerce it into a series
+
+    fluxmax = reduced_csv['FLUX_MAX']
+    high_fluxmax = (sigma_clip(fluxmax).mask) & (number > 0)
+
+    halflight_radius = reduced_csv['FLUX_RADIUS_50']
+    isoareaf = reduced_csv['ISOAREAF_IMAGE']
+    scatteredness = halflight_radius**2/isoareaf
+    high_scatteredness = (sigma_clip(scatteredness).mask) & (number > 0)
+    
+    large = (sigma_clip(isoareaf,sigma=4).mask) & (number > 0)
+    ellipticity = reduced_csv['ELLIPTICITY']
+    not_elliptical = (ellipticity < 0.5)
+    fifthlight_radius = reduced_csv['FLUX_RADIUS_20']
+    not_concentrated = ~sigma_clip(halflight_radius/fifthlight_radius,sigma_upper=3,sigma_lower=np.inf).mask & (number > 0)
+
+    mask_csv = csv[above_analysis_thresh | high_fluxmax | (high_background | ~high_scatteredness) & ~(large & not_elliptical & not_concentrated) | (aperture_data_incomplete & ~flagswin_eight)]
+    mask_csv.to_csv(filt_dir/f'{signature}_mask_{photfilt}.csv',index=False)
+    mask = np.isin(segmap,mask_csv['NUMBER'])  
+
+    return mask
+
+def source_extractor_call(mask_params,sex_dir,filt_dir,photfilt,signature):
+    data_path = filt_dir/f'{signature}_1a_data_{photfilt}.fits'
+    weight_path = filt_dir/f'{signature}_1b_weight_{photfilt}.fits'
+    detect_minarea = mask_params[0]
+    detect_thresh = mask_params[1]
+    subprocess.call(f"source-extractor {data_path} -c mask.sex -WEIGHT_IMAGE {weight_path} -DETECT_MINAREA {detect_minarea} -DETECT_THRESH {detect_thresh} -CHECKIMAGE_NAME {filt_dir/f'{signature}_2a_segmap_{photfilt}.fits'} -CATALOG_NAME {filt_dir/f'{signature}_segmap_{photfilt}.catalog'}", shell=True, cwd=sex_dir)
+    with fits.open(filt_dir/f'{signature}_2a_segmap_{photfilt}.fits') as hdul:
+        segmap = hdul[0].data
         
-    return segmap_surf, segmap_deep, deep_csv
+    return segmap
 
-def get_star_segmap(data_path,weight_path,star_params,sex_dir,filt_dir,photfilt,signature):
-    star_minarea = star_params[0]
-    star_thresh = star_params[1]
-    subprocess.call(f"source-extractor {data_path} -c star.sex -WEIGHT_IMAGE {weight_path} -DETECT_MINAREA {star_minarea} -DETECT_THRESH {star_thresh} -CHECKIMAGE_NAME {filt_dir/f'{signature}_2e_segmap_star_{photfilt}.fits'} -CATALOG_NAME {filt_dir/f'{signature}_2e_segmap_star_{photfilt}.catalog'}", shell=True, cwd=sex_dir)
-    star_cat = pd.read_table(filt_dir/f'{signature}_2e_segmap_star_{photfilt}.catalog',sep='\s+',escapechar='#', header=None)
-    header = ['NUMBER','X_IMAGE','Y_IMAGE','ISOAREAF_IMAGE','FLAGS']
-    #seems silly to read cat, delete cat, write csv, and read csv
-    star_cat.to_csv(filt_dir/f'{signature}_2e_segmap_star_{photfilt}.csv',index=False,header=header)
-    os.remove(filt_dir/f'{signature}_2e_segmap_star_{photfilt}.catalog')
-    star_csv = pd.read_csv(filt_dir/f'{signature}_2e_segmap_star_{photfilt}.csv')
-    with fits.open(filt_dir/f'{signature}_2e_segmap_star_{photfilt}.fits') as hdul:
-        segmap_star = hdul[0].data
-        
-    return segmap_star, star_csv
+def get_csv(filt_dir,photfilt,signature):
+    cat = pd.read_table(filt_dir/f'{signature}_segmap_{photfilt}.catalog',sep='\s+',escapechar='#', header=None)
+    header = ['NUMBER','X_IMAGE','Y_IMAGE','FWHM_IMAGE','FLUX_ISO','FLUX_APER5','FLUX_APER25','FLUX_MAX','FLUX_AUTO','FLUX_WIN','ISOAREA_IMAGE','ISOAREAF_IMAGE','FLUX_RADIUS_20','FLUX_RADIUS_50','FLUX_RADIUS_90','ELLIPTICITY','A_IMAGE','BACKGROUND','XMIN_IMAGE','YMIN_IMAGE','XMAX_IMAGE','YMAX_IMAGE','XPEAK_IMAGE','YPEAK_IMAGE','X2_IMAGE','Y2_IMAGE','FLAGS','FLAGS_WIN']
+    cat.to_csv(filt_dir/f'{signature}_segmap_{photfilt}.csv',index=False,header=header)
+    os.remove(filt_dir/f'{signature}_segmap_{photfilt}.catalog')
+    csv = pd.read_csv(filt_dir/f'{signature}_segmap_{photfilt}.csv')
 
-def get_background(data_path,weight_path,sex_dir,filt_dir,photfilt,signature):
+    return csv
+
+def get_background(sex_dir,filt_dir,photfilt,signature):
     '''
     If the background image is not satisfactory, you can try playing with the BACKSIZE parameter in the background.sex file.
     '''
+    data_path = filt_dir/f'{signature}_1a_data_{photfilt}.fits'
+    weight_path = filt_dir/f'{signature}_1b_weight_{photfilt}.fits'
     subprocess.call("source-extractor {0} -c background.sex -WEIGHT_IMAGE {1} -CHECKIMAGE_NAME {2}".format(data_path,weight_path,filt_dir/f'{signature}_1c_background_{photfilt}.fits'), shell=True, cwd=sex_dir)
     with fits.open(filt_dir/f'{signature}_1c_background_{photfilt}.fits') as hdul:
         background = hdul[0].data
 
     return background
 
-def mask_image(filt_dir,photfilt,sex_dir,surf_params,deep_params,star_params,signature,verbose):
-
-    '''
-    Mask out objects that are definitively not dwarfs before performing the median filtering. This makes things easier when identifying potential dwarfs in the
-    median-filtered image. Dwarfs are large and faint, so we want to get rid of objects that are large and not faint, as well as small objects (point sources). The first mask
-    throws out all objects above a certain brightness threshold using sextractor's DETECT_THRESH. Ideally this threshold corresponds to slightly above the brightest
-    dwarf. Of course, the entire object including the wings must be thrown out, which means that two passes of sextractor's detection algorithm are required; one for
-    identifying the bright objects (a surface scan) and a deep scan that has such a low DETECT_THRESH that it uncovers essentially everything in the image. The entire
-    extent, as revealed by the deep scan, of those objects in the surface scan, are then discarded via the first mask. The second mask encompasses all objects that
-    are small and reasonably bright. The previous deep scan is too deep for this, as lots of junky specks are picked up as objects, so we have to do a third sextractor run, 
-    not so deep that we pick up specks and random junk (which might be part of dwarfs), but deep enough we get all of the stars. This scan may well detect dwarfs since there is
-    no control over the size of objects detected by sextractor. Fortunately we can prevent these from becoming part of the mask by filtering the catalog-turned-csv
-    that sextractor spits out. The detections in the csv, filtered by size to ensure they are stars only, are the contents of the second mask. Applying both masks to
-    the data in succession thus removes bright extended objects as well as stars. The replacement value of the mask is simply the background with some added Gaussian noise.
-    This is both fast and makes a surprisingly good filler, so that the image post-masking looks as though the objects we removed were simply never there in the first place.
-    '''
+def mask_image(filt_dir,photfilt,sex_dir,mask_params,signature,verbose):
 
     t1 = time.perf_counter()
-
-    data_path = filt_dir/f'{signature}_1a_data_{photfilt}.fits'
-    weight_path = filt_dir/f'{signature}_1b_weight_{photfilt}.fits'
-    background = get_background(data_path,weight_path,sex_dir,filt_dir,photfilt,signature)
-    with fits.open(data_path) as hdul:
-        data = hdul[0].data
-
-    segmap_surf, segmap_deep, deep_csv = get_brightobj_segmaps(data_path,weight_path,surf_params,deep_params,sex_dir,filt_dir,photfilt,signature)
-    brightobj_mask = create_brightobj_mask(segmap_surf,segmap_deep, deep_csv)
-    data_brightobj_masked = apply_mask(data,brightobj_mask,background)
-    masked_path = filt_dir/f'{signature}_2d_brightobj_masked_{photfilt}.fits'
-    fits.writeto(masked_path,data_brightobj_masked,overwrite=True)
-
-    segmap_star, star_csv = get_star_segmap(masked_path,weight_path,star_params,sex_dir,filt_dir,photfilt,signature)
-    star_mask = create_star_mask(segmap_star, star_csv)
-    data_masked = apply_mask(data_brightobj_masked,star_mask,background)
-
-    #segmap_surf[segmap_surf>0] = 1
-    #segmap_deep[segmap_deep>0] = 1
-    #segmap_star[segmap_star>0] = 1
-
-    combined_mask = brightobj_mask | star_mask
-    segmap_masked = segmap_deep.copy()
-    segmap_masked[combined_mask] = 0
-
+    background = get_background(sex_dir,filt_dir,photfilt,signature)
+    segmap = source_extractor_call(mask_params,sex_dir,filt_dir,photfilt,signature)
+    csv = get_csv(filt_dir,photfilt,signature)
+    mask = filter_segmap(segmap, csv, filt_dir, photfilt, signature)
+    dilation_rad = 5
+    dilated_mask = dilate_mask(mask,dilation_rad)
+    hot_pixels_mask = get_hot_pixels_mask(filt_dir,photfilt,signature,dilated_mask)
+    masked_data, combined_mask = apply_masks(filt_dir,photfilt,signature,dilated_mask,hot_pixels_mask,background)
     t2 = time.perf_counter()
     if verbose:
         print(f"masking {photfilt}: {t2-t1}")
 
-
-    fits.writeto(filt_dir/f'{signature}_2a_segmap_surf_{photfilt}.fits',segmap_surf,overwrite=True)
-    fits.writeto(filt_dir/f'{signature}_2b_segmap_deep_{photfilt}.fits',segmap_deep,overwrite=True)
-    fits.writeto(filt_dir/f'{signature}_2c_brightobj_mask_{photfilt}.fits',brightobj_mask.astype(int),overwrite=True)
-    fits.writeto(filt_dir/f'{signature}_2e_segmap_star_{photfilt}.fits',segmap_star,overwrite=True)
-    fits.writeto(filt_dir/f'{signature}_2f_star_mask_{photfilt}.fits',star_mask.astype(int),overwrite=True)
-    fits.writeto(filt_dir/f'{signature}_2h_segmap_deep_masked_{photfilt}.fits',segmap_masked,overwrite=True)
-    fits.writeto(filt_dir/f'{signature}_3_data_masked_{photfilt}.fits',data_masked,overwrite=True)
+    fits.writeto(filt_dir/f'{signature}_2a_segmap_{photfilt}.fits',segmap,overwrite=True)
+    fits.writeto(filt_dir/f'{signature}_2b_filtered_{photfilt}.fits',mask.astype(int),overwrite=True)
+    fits.writeto(filt_dir/f'{signature}_2c_dialated_{photfilt}.fits',dilated_mask.astype(int),overwrite=True)
+    fits.writeto(filt_dir/f'{signature}_2d_hot_pixels_{photfilt}.fits',hot_pixels_mask.astype(int),overwrite=True)
+    fits.writeto(filt_dir/f'{signature}_2e_combined_mask_{photfilt}.fits',combined_mask.astype(int),overwrite=True)
+    fits.writeto(filt_dir/f'{signature}_3_masked_data_{photfilt}.fits',masked_data,overwrite=True)
 
 if __name__ == '__main__':
 

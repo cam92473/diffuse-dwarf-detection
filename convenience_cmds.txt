@@ -1,1 +1,0 @@
-python3 get_artificial_catalog.py ../../../../IMAGES/individual_dwarfs/KK98a189/KK98a189.fits g 17.4035 17.4035 15.267 15.267 0.8001 0.8001 .8804 .8804 -41.1224 -41.1224 1 psfs/KK98a189_psf.fits 10 -positions 406 421 -subtract --verbose

@@ -1,5 +1,6 @@
 input_images/
 TRAIN_CNN/dataset/
+TRAIN_CNN/dataset_old/
 TRAIN_CNN/create_dataset/
 TRAIN_CNN/logs/
 ALGORITHM/saved_runs/

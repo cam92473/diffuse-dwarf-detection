@@ -10,14 +10,14 @@ def flush_dirs(dirs_to_clean):
             file_path = os.path.join(dir, filename)
             os.unlink(file_path)
 
-def create_signature(signature):
+def create_signature(data_path,signature):
     if signature is None:
         timestr = datetime.now().strftime("_%Y%m%d%H%M%S")
         signature = data_path.stem + timestr
     return signature
 
 def setup(data_path,medblur_rad,signature,save):
-    signature = create_signature(signature)
+    signature = create_signature(data_path,signature)
     algm_dir = Path.cwd()
     root_dir = algm_dir.parent  
     input_dir = root_dir/'input_images'
@@ -69,6 +69,7 @@ def setup(data_path,medblur_rad,signature,save):
     return signature, paths
 
 def detect_dwarfs(data_path, medblur_rad, detect_params, save, play_through, signature, verbosity):
+
     t1 = time.perf_counter()
     if verbosity > 0:
         print("Starting algorithm")
@@ -90,8 +91,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Dwarf detection algorithm')
     parser.add_argument('data_path', help='Input image. May be from one of the RAW subdirectories, in which case it needs to be preprocessed, or from the PREPROCESS/preprocessed directory, in which case it can be directly input to the algorithm.')
-    parser.add_argument('-medblur_rad', default=30, type=int, help='Radius of the circular kernel used by Gimp to median blur the image. Best results obtained when the blurring kernel is about the size of a dwarf galaxy.')
-    parser.add_argument('-detect_params', nargs=2, default=[100,2], help='The DETECT_MINAREA and DETECT_THRESH sextractor parameters used to detect objects in the blurred image.')
+    parser.add_argument('-medblur_rad', default=20, type=int, help='Radius of the circular kernel used by Gimp to median blur the image. Best results obtained when the blurring kernel is about the size of a dwarf galaxy.')
+    parser.add_argument('-detect_params', nargs=2, default=[500,3], help='The DETECT_MINAREA and DETECT_THRESH sextractor parameters used to detect objects in the blurred image.')
     parser.add_argument('--save', action='store_true', help='Saves images captured from the algorithm\'s run to the saved_runs directory, allowing you to inspect them after the algorithm has finished.')
     parser.add_argument('--play_through', action='store_true', help='Executes the algorithm in play-through mode, allowing you to observe the algorithm working in "real time" (through the Gimp UI). If the image is very big, the program might become EXTREMELY slow.')
     parser.add_argument('--signature', help='Optional parameter which allows you to specify the signature, or the name used to identify the output files (if not specified, a name will be created based on the input data name and the current time).')
@@ -106,7 +107,7 @@ if __name__ == '__main__':
     signature = args.signature
     verbosity = args.verbosity
 
-    if data_path.parent.stem != "gimp_ready":
+    if "gimp_ready" not in data_path.parts:
         raise Exception("The image must be preprocessed (sigma clipped and made ready for Gimp) before the algorithm can operate on it. Use preprocess.py in the 'input_images' directory.")
 
     detect_dwarfs(data_path, medblur_rad, detect_params, save, play_through, signature, verbosity)

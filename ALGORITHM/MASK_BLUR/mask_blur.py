@@ -20,12 +20,11 @@ def configure_bash(play_through,verbosity):
     
     return switch, stdout, stderr, 
 
-def mask_blur(paths, medblur_rad, save, play_through, signature, verbosity):
+def mask_blur(data_path, paths, medblur_rad, save, play_through, signature, verbosity):
     t1 = time.perf_counter()
     if verbosity > 0:
         print("MASK & BLUR")
     
-    data_path = paths['data_file']
     blurred_path = paths['blurred_file']
     save_data_path = paths['save']/f'{signature}_A_data.jpeg'
     save_masked_path = paths['save']/f'{signature}_B_masked.jpeg'

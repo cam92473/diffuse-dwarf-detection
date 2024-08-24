@@ -13,6 +13,8 @@ import threading
 import shutil
 from scipy.spatial.distance import squareform, pdist
 from scipy.ndimage import binary_dilation
+from itertools import accumulate
+import operator
 
 def get_mask_from_ids(ids,segmap):
     arr_mask = np.isin(segmap,ids)
@@ -72,32 +74,49 @@ def filter_detections(paths,csv,segmap,save,play_through,signature,verbosity):
     if verbosity > 0:
         print(" filtering detections...")
 
+    filters = []
+    descriptions = ['   raw detections']
+
     number = csv['NUMBER']
 
-    isoarea = csv['ISOAREA_IMAGE']
+    '''isoarea = csv['ISOAREA_IMAGE']
     large = sigma_clip(isoarea,sigma_upper=2,sigma_lower=np.inf).mask & (number>0)
+    filters.append(large)
+    descriptions.append('   isoarea')'''
 
-    fluxmax = csv['FLUX_MAX']
+    '''fluxmax = csv['FLUX_MAX']
     high_fluxmax = sigma_clip(fluxmax,sigma_upper=2,sigma_lower=np.inf).mask & (number > 0)
+    filters.append(high_fluxmax)
+    descriptions.append('    fluxmax')'''
 
-    snrwin = csv['SNR_WIN']
+    '''snrwin = csv['SNR_WIN']
     high_snr = sigma_clip(snrwin,sigma_upper=1.5,sigma_lower=np.inf).mask & (number > 0)
+    filters.append(high_snr)
+    descriptions.append('   snrwin')'''
 
-    ellipticity = csv['ELLIPTICITY']
-    circular = (ellipticity <= 0.4)
+    '''ellipticity = csv['ELLIPTICITY']
+    circular = (ellipticity <= 0.3)
+    filters.append(circular)
+    descriptions.append('   ellipticity')'''
 
-    fwhm = csv['FWHM_IMAGE']
-    profile_too_flat = sigma_clip(fwhm,sigma_upper=3,sigma_lower=np.inf).mask & (number > 0)
+    '''fwhm = csv['FWHM_IMAGE']
+    profile_not_too_flat = ~(sigma_clip(fwhm,sigma_upper=3,sigma_lower=np.inf).mask & (number > 0))
+    filters.append(profile_not_too_flat)
+    descriptions.append('   fwhm')'''
 
     '''x = csv['X_IMAGE']
     y = csv['Y_IMAGE']
     xpeak = csv['XPEAK_IMAGE']
     ypeak = csv['YPEAK_IMAGE']
-    asymmetric = (x-xpeak)**2+(y-ypeak)**2
-    asymmetric = sigma_clip(asymmetric,sigma_lower=np.inf,sigma_upper=3).mask & (number > 0)'''
+    asymmetry = (x-xpeak)**2+(y-ypeak)**2
+    not_asymmetric = ~(sigma_clip(asymmetry,sigma_lower=np.inf,sigma_upper=3).mask & (number > 0))
+    filters.append(not_asymmetric)
+    descriptions.append('   asymmetric')'''
 
     flags = csv['FLAGS']
-    flagged = (flags==2) | (flags==3) | (flags==18) | (flags==19)
+    not_flagged = ~((flags==2) | (flags==3) | (flags==18) | (flags==19))
+    filters.append(not_flagged)
+    descriptions.append('   flagged')
 
     with fits.open(paths['blurred_file']) as hdul:
         data = hdul[0].data
@@ -111,17 +130,23 @@ def filter_detections(paths,csv,segmap,save,play_through,signature,verbosity):
     bordermask[:,-128:] = True
     edge_proximity_mask = (nanmask | bordermask)
     coords = csv[['X_IMAGE','Y_IMAGE']].astype(int)
-    too_close_edge = edge_proximity_mask[coords['Y_IMAGE'],coords['X_IMAGE']] & (number > 0)
+    not_too_close_edge = ~(edge_proximity_mask[coords['Y_IMAGE'],coords['X_IMAGE']] & (number > 0))
+    filters.append(not_too_close_edge)
+    descriptions.append('   proximity_edge')
 
-    remaining_csv = csv[large & high_fluxmax & high_snr & circular & ~profile_too_flat & ~flagged & ~too_close_edge]
-    distance_matrix = pd.DataFrame(squareform(pdist(remaining_csv[['X_IMAGE','Y_IMAGE']])),index=remaining_csv.index)
-    updated_dm = distance_matrix.mask(distance_matrix==0, distance_matrix.max(axis=1), axis=0)
-    tc_updater = (updated_dm<100).any(axis=1)
-    too_close_mutual = (number<0).copy()
-    too_close_mutual.update(tc_updater)
-    too_close_mutual = too_close_mutual.astype(bool)
+    remaining_csv = csv[pd.concat(filters,axis=1).all(axis=1)]
+    if remaining_csv.shape[0] > 1:
+        distance_matrix = pd.DataFrame(squareform(pdist(remaining_csv[['X_IMAGE','Y_IMAGE']])),index=remaining_csv.index)
+        updated_dm = distance_matrix.mask(distance_matrix==0, distance_matrix.max(axis=1), axis=0)
+        tc_updater = (updated_dm<100).any(axis=1)
+        too_close_mutual = (number<0).copy()
+        too_close_mutual.update(tc_updater)
+        not_too_close_mutual = ~(too_close_mutual.astype(bool))
+        filters.append(not_too_close_mutual)
+        descriptions.append('   proximity_mutual')
 
-    filtered_csv = csv[large & high_fluxmax & high_snr & circular & ~profile_too_flat & ~flagged & ~too_close_edge & ~too_close_mutual]
+    filtered_csv = csv[pd.concat(filters,axis=1).all(axis=1)]
+    descriptions.append('   filtered detections')
     filtered_csv.to_csv(paths["csv"]/f'{signature}_filtered_detections.csv',index=False)
     mask = np.isin(segmap,filtered_csv['NUMBER'])
     filtered_detections = segmap.copy()
@@ -137,10 +162,13 @@ def filter_detections(paths,csv,segmap,save,play_through,signature,verbosity):
     if (save | play_through):
         openlayer_print_delay = 2
         filtered_time = 5
-        ids_list = [number,number,number[large],number[large&high_fluxmax],number[large&high_fluxmax&high_snr],number[large&high_fluxmax&high_snr&circular],number[large&high_fluxmax&high_snr&circular&~profile_too_flat],number[large&high_fluxmax&high_snr&circular&~profile_too_flat&~flagged],number[large&high_fluxmax&high_snr&circular&~profile_too_flat&~flagged&~too_close_edge],number[large&high_fluxmax&high_snr&circular&~profile_too_flat&~flagged&~too_close_edge&~too_close_mutual],number[large&high_fluxmax&high_snr&circular&~profile_too_flat&~flagged&~too_close_edge&~too_close_mutual]]
+        anded_filters_list = list(accumulate(filters,operator.and_))
+        ids_list = [number, number]
+        ids_list = ids_list + [number[anded_filters_list[i]] for i in range(len(filters))]
+        ids_list.append(number[anded_filters_list[-1]])
         num_removed  = [len(ids_list[i])-len(ids_list[i+1]) for i in range(len(ids_list)-1)]
-        names = ['D_raw_detections','E_isoarea','F_fluxmax','G_snrwin','H_ellipticity','I_fwhm','J_flagged','K_proximity_edge','L_proximity_mutual','M_filtered_detections']
-        descriptions = ['   raw detections','   isoarea','   fluxmax','   snrwin','   ellipticity','   fwhm', '   flagged','   proximity_edge','   proximity_mutual','   filtered detections']
+        letters = 'DEFGHIJKLMNOP'
+        names = [letters[i]+'_'+descriptions[i][3:] for i in range(len(descriptions))]
         messages = [descriptions[i]+": "+str(num_removed[i])+" detections removed" if (i!=0)&(i!=(len(descriptions)-1)) else descriptions[i]+" ("+str(len(ids_list[i+1]))+")" for i in range(len(descriptions))]
         blurred = fits_to_pil(paths['blurred_file'])
         blue = PIL.Image.new('RGB', blurred.size, 'blue')
@@ -174,19 +202,16 @@ def filter_detections(paths,csv,segmap,save,play_through,signature,verbosity):
             t1.join()
         if save:
             for name in names:
-                shutil.move(paths["images"]/f'{signature}_{name}.jpeg',paths["save"]/f'{signature}_{name}.jpeg')
-        else:
-            for name in names:
-                os.remove(paths["images"]/f'{signature}_{name}.jpeg')
+                shutil.copyfile(paths["images"]/f'{signature}_{name}.jpeg',paths["save"]/f'{signature}_{name}.jpeg')
 
     return filtered_csv
 
-def source_extractor_call(paths,detect_params,signature,verbosity):
+def source_extractor_call(blurred_file,paths,detect_params,signature,verbosity):
     detect_minarea = detect_params[0]
     detect_thresh = detect_params[1]
     if verbosity > 0:
         print(" getting objects with source-extractor...")
-    subprocess.call(f"source-extractor {paths['blurred_file']} -c detect.sex -DETECT_MINAREA {detect_minarea} -DETECT_THRESH {detect_thresh} -ANALYSIS_THRESH {detect_thresh} -CHECKIMAGE_NAME {paths['images']/f'{signature}_raw_detections.fits'} -CATALOG_NAME {paths['csv']/f'{signature}_raw_detections.catalog'}", shell=True, cwd=paths["sextractor"])
+    subprocess.call(f"source-extractor {blurred_file} -c detect.sex -DETECT_MINAREA {detect_minarea} -DETECT_THRESH {detect_thresh} -ANALYSIS_THRESH {detect_thresh} -CHECKIMAGE_NAME {paths['images']/f'{signature}_raw_detections.fits'} -CATALOG_NAME {paths['csv']/f'{signature}_raw_detections.catalog'}", shell=True, cwd=paths["sextractor"])
     with fits.open(paths["images"]/f'{signature}_raw_detections.fits') as hdul:
         segmap = hdul[0].data
 
@@ -212,6 +237,7 @@ def clip_and_convert(cutout):
     return cutout
 
 def cutout_filtered_detections(paths,filtered_csv,verbosity):
+
     if verbosity > 0:
         print(" making cutouts...")
     with fits.open(paths['clipped_file']) as hdul:
@@ -225,12 +251,12 @@ def cutout_filtered_detections(paths,filtered_csv,verbosity):
         im = PIL.Image.fromarray(np.uint16(cutout),'I;16')
         im.save(paths["cutouts"]/f'co_{i}_{r[i]}_{c[i]}.png')
 
-def detect_filter_cutout(paths, detect_params, save, play_through, signature, verbosity):
+def detect_filter_cutout(blurred_file, paths, detect_params, save, play_through, signature, verbosity):
     t1 = time.perf_counter()
     if verbosity > 0:
         print("DETECT, FILTER & CUTOUT")
 
-    segmap = source_extractor_call(paths,detect_params,signature,verbosity)
+    segmap = source_extractor_call(blurred_file,paths,detect_params,signature,verbosity)
     csv = get_csv(paths,signature)
     filtered_csv = filter_detections(paths,csv,segmap,save,play_through,signature,verbosity)
     cutout_filtered_detections(paths,filtered_csv,verbosity)

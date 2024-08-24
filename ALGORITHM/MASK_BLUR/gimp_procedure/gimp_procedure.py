@@ -114,11 +114,18 @@ def gimp_procedure(data_path,blurred_path,save_data_path,save_masked_path,save_b
         config.set_property('parent', None)
         config.set_property('position', 0)
         result = procedure.run(config)
-        
-        procedure = Gimp.get_pdb().lookup_procedure('gimp-drawable-levels-stretch')
-        config = procedure.create_config()
-        config.set_property('drawable', original_save)
-        result = procedure.run(config)
+
+        procedure = Gimp.get_pdb().lookup_procedure('gimp-drawable-levels')
+        config = procedure.create_config(); config.set_property('drawable', original_save)
+        config.set_property('channel', 0)
+        config.set_property('low-input', .015)
+        config.set_property('high-input', .05)
+        config.set_property('clamp-input', False)
+        config.set_property('gamma', 1)
+        config.set_property('low-output', 0)
+        config.set_property('high-output', 1)
+        config.set_property('clamp-output', False)
+        result = procedure.run(config) 
 
         procedure = Gimp.get_pdb().lookup_procedure('gimp-displays-flush')
         config = procedure.create_config()
@@ -324,12 +331,6 @@ def gimp_procedure(data_path,blurred_path,save_data_path,save_masked_path,save_b
         config.set_property('item', residual)
         config.set_property('visible', False)
         result = procedure.run(config)
-        config.set_property('item', freq1)
-        config.set_property('visible', True)
-        result = procedure.run(config)
-        config.set_property('item', freq2)
-        config.set_property('visible', True)
-        result = procedure.run(config)
         config.set_property('item', freq3)
         config.set_property('visible', True)
         result = procedure.run(config)
@@ -403,7 +404,7 @@ def gimp_procedure(data_path,blurred_path,save_data_path,save_masked_path,save_b
         mean = result.index(1)
         std_dev = result.index(2)
 
-        highpass_thresh = mean + 4*std_dev
+        highpass_thresh = mean + 2*std_dev
         procedure = Gimp.get_pdb().lookup_procedure('gimp-drawable-threshold')
         config = procedure.create_config()
         config.set_property('drawable', highpass)
@@ -456,7 +457,7 @@ def gimp_procedure(data_path,blurred_path,save_data_path,save_masked_path,save_b
         procedure = Gimp.get_pdb().lookup_procedure('gimp-selection-grow')
         config = procedure.create_config()
         config.set_property('image', image)
-        config.set_property('steps', 5)
+        config.set_property('steps', 10)
         result = procedure.run(config)
 
         procedure = Gimp.get_pdb().lookup_procedure('gimp-selection-flood')
@@ -635,12 +636,59 @@ def gimp_procedure(data_path,blurred_path,save_data_path,save_masked_path,save_b
         mean = result.index(1)
         std_dev = result.index(2)
 
-        largehalos_thresh = mean + 12*std_dev
+        Gegl.init()
+
+        buffer = lowpass_copy.get_buffer()
+        shadow = lowpass_copy.get_shadow_buffer()
+        graph = Gegl.Node()
+        src = graph.create_child("gegl:buffer-source")
+        src.set_property("buffer", buffer)
+        bloom = graph.create_child("gegl:bloom")
+        bloom.set_property("threshold",100*(mean-0.1*std_dev))
+        bloom.set_property("softness",0)
+        bloom.set_property("radius",10)
+        bloom.set_property("strength",200)
+        write = graph.create_child("gegl:write-buffer")
+        write.set_property("buffer", shadow)
+        src.link(bloom)
+        bloom.link(write)
+        write.process()
+        shadow.flush()
+        lowpass_copy.merge_shadow(True)
+        lowpass_copy.update(0,0,lowpass_copy.get_width(),lowpass_copy.get_height())
+
+        procedure = Gimp.get_pdb().lookup_procedure('gimp-displays-flush')
+        config = procedure.create_config()
+        result = procedure.run(config)
+
+        procedure = Gimp.get_pdb().lookup_procedure('gimp-drawable-shadows-highlights')
+        config = procedure.create_config()
+        config.set_property('drawable', lowpass_copy)
+        config.set_property('shadows', -100)
+        config.set_property('highlights', 0)
+        config.set_property('whitepoint', 0)
+        config.set_property('radius', 100)
+        config.set_property('compress', 50)
+        config.set_property('shadows-ccorrect', 100)
+        config.set_property('highlights-ccorrect', 50)
+        result = procedure.run(config)
+
+        procedure = Gimp.get_pdb().lookup_procedure('gimp-drawable-histogram')
+        config = procedure.create_config()
+        config.set_property('drawable', lowpass_copy)
+        config.set_property('channel', 0)
+        config.set_property('start-range', 0)
+        config.set_property('end-range', 1)
+        result = procedure.run(config)
+        mean = result.index(1)
+        std_dev = result.index(2)
+
+        halos_thresh = 1.8*mean
         procedure = Gimp.get_pdb().lookup_procedure('gimp-drawable-threshold')
         config = procedure.create_config()
         config.set_property('drawable', lowpass_copy)
         config.set_property('channel', 0)
-        config.set_property('low-threshold', largehalos_thresh)
+        config.set_property('low-threshold', halos_thresh)
         config.set_property('high-threshold', 1)
         result = procedure.run(config)
 
@@ -673,12 +721,6 @@ def gimp_procedure(data_path,blurred_path,save_data_path,save_masked_path,save_b
         config.set_property('item', largehalos_mask)
         result = procedure.run(config)
 
-        procedure = Gimp.get_pdb().lookup_procedure('gimp-selection-grow')
-        config = procedure.create_config()
-        config.set_property('image', image)
-        config.set_property('steps', 120)
-        result = procedure.run(config)
-
         procedure = Gimp.get_pdb().lookup_procedure('gimp-selection-flood')
         config = procedure.create_config()
         config.set_property('image', image)
@@ -703,7 +745,7 @@ def gimp_procedure(data_path,blurred_path,save_data_path,save_masked_path,save_b
 
         if play_through:
                 if verbosity == 2:
-                        print("  mask expanded and flooded")
+                        print("  mask flooded")
                 time.sleep(sleeptime)
 
         procedure = Gimp.get_pdb().lookup_procedure('gimp-drawable-edit-clear')

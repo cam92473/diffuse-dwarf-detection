@@ -4,7 +4,7 @@ import pandas as pd
 import seaborn as sns
 
 nums = [1,2,3,4,5]
-vnums = [1,2,3,4,5,6]
+vnums = [1,2,3]
 
 magtot = np.array([])
 refftot = np.array([])
@@ -13,7 +13,7 @@ qtot = np.array([])
 thetatot = np.array([])
 completenesstot = np.array([])
 
-'''for num in nums:
+for num in nums:
     mag = np.load(f'605plot/mag{num}.npy')
     reff = np.load(f'605plot/reff{num}.npy')
     n = np.load(f'605plot/n{num}.npy')
@@ -26,15 +26,15 @@ completenesstot = np.array([])
     ntot = np.concatenate([ntot,n])
     qtot = np.concatenate([qtot,q])
     thetatot = np.concatenate([thetatot,theta])
-    completenesstot = np.concatenate([completenesstot,completeness])'''
+    completenesstot = np.concatenate([completenesstot,completeness])
     
 for vnum in vnums:
-    magv = np.load(f'plotV/mag{vnum}.npy')
-    reffv = np.load(f'plotV/reff{vnum}.npy')
-    nv = np.load(f'plotV/n{vnum}.npy')
-    qv = np.load(f'plotV/q{vnum}.npy')
-    thetav = np.load(f'plotV/theta{vnum}.npy')
-    completenessv = np.load(f'plotV/completeness{vnum}.npy')
+    magv = np.load(f'605plotV/mag{vnum}.npy')
+    reffv = np.load(f'605plotV/reff{vnum}.npy')
+    nv = np.load(f'605plotV/n{vnum}.npy')
+    qv = np.load(f'605plotV/q{vnum}.npy')
+    thetav = np.load(f'605plotV/theta{vnum}.npy')
+    completenessv = np.load(f'605plotV/completeness{vnum}.npy')
 
     magtot = np.concatenate([magtot,magv])
     refftot = np.concatenate([refftot,reffv])
@@ -48,20 +48,19 @@ reff = np.load('605plot/reffA.npy')
 n = np.load('605plot/nA.npy')
 q = np.load('605plot/qA.npy')
 theta = np.load('605plot/thetaA.npy')
-completeness = np.load('605plot/completenessA.npy')
+completeness = np.load('605plot/completenessA.npy')'''
 
 magtot = np.concatenate([magtot,mag])
 refftot = np.concatenate([refftot,reff])
 ntot = np.concatenate([ntot,n])
 qtot = np.concatenate([qtot,q])
 thetatot = np.concatenate([thetatot,theta])
-completenesstot = np.concatenate([completenesstot,completeness])'''
+completenesstot = np.concatenate([completenesstot,completeness])
 
-
-print(magtot)
+'''print(magtot)
 print(refftot)
 print(completenesstot)
-print(len(completenesstot))
+print(len(completenesstot))'''
 
 '''plt.scatter(magtot,refftot,c=completenesstot)
 plt.colorbar()

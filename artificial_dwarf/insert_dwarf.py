@@ -30,18 +30,21 @@ def get_Ieff(mag,reff,n,q):
     Ieff = flux/restofterms
     return Ieff
 
-def insert_dwarf_intoarray(data,psf,mag,reff,n,q,theta,x_off,y_off):
+def insert_dwarf_intoarray(data,psf,mag,reff,n,q,theta,x0,y0,return_Ieff=False):
 
     Ieff = get_Ieff(mag,reff,n,q)
-    mod = Sersic2D(amplitude=Ieff, r_eff=reff, n=n, x_0=data.shape[1]/2+x_off, y_0=data.shape[0]/2+y_off, ellip=1-q, theta=np.radians(theta+90))
-    x, y = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
+    mod = Sersic2D(amplitude=Ieff, r_eff=reff, n=n, x_0=x0, y_0=y0, ellip=1-q, theta=np.radians(theta+90))
+    x, y = np.meshgrid(np.arange(max(0,int(x0-5*reff)),min(int(x0+5*reff),data.shape[1])), np.arange(max(0,int(y0-5*reff)),min(int(y0+5*reff),data.shape[0])))
     dwarfimg = mod(x, y)
 
     convolved_dwarf = fftconvolve(dwarfimg,psf,mode='same')
 
-    data += convolved_dwarf
+    data[y,x] += convolved_dwarf
 
-    return data
+    if return_Ieff:
+        return data, Ieff
+    else:
+        return data
 
 def insert_dwarf_intofile(data_path,psf_path,mag,reff,n,q,theta,x0,y0,outname):
 
@@ -50,16 +53,17 @@ def insert_dwarf_intofile(data_path,psf_path,mag,reff,n,q,theta,x0,y0,outname):
 
     Ieff = get_Ieff(mag,reff,n,q)
     mod = Sersic2D(amplitude=Ieff, r_eff=reff, n=n, x_0=x0, y_0=y0, ellip=1-q, theta=np.radians(theta+90))
-    x, y = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
-    dwarfimg = mod(x, y)
+    x, y = np.meshgrid(np.arange(max(0,int(x0-5*reff)),min(int(x0+5*reff),data.shape[1])), np.arange(max(0,int(y0-5*reff)),min(int(y0+5*reff),data.shape[0])))
+    #x, y = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
+    dwarf = mod(x, y)
 
     with fits.open(psf_path) as hdul:
         psf = hdul[0].data
     psf/=psf.sum()
 
-    convolved_dwarf = fftconvolve(dwarfimg,psf,mode='same')
+    convolved_dwarf = fftconvolve(dwarf,psf,mode='same')
 
-    data += convolved_dwarf
+    data[y,x] += convolved_dwarf
 
     fits.writeto(outname,data,overwrite=True)
 

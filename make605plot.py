@@ -67,10 +67,10 @@ plt.colorbar()
 plt.show()'''
 
 df = pd.DataFrame(data={'apparent magnitude':magtot,'effective radius':refftot,'sersic index':ntot,'axis ratio':qtot,'position angle':thetatot,'completeness':completenesstot})
+norm = plt.Normalize(0, 1)
 g = sns.PairGrid(df, vars=["apparent magnitude", "effective radius", "sersic index", "axis ratio", "position angle"])
-g.map_offdiag(sns.scatterplot, hue=df["completeness"], palette="viridis")
+g.map_offdiag(sns.scatterplot, hue=df["completeness"], palette="viridis", hue_norm=norm)
 g.map_diag(sns.histplot, color="gray", kde=False)
-norm = plt.Normalize(df["completeness"].min(), df["completeness"].max())
 sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
 sm.set_array([])
 g.fig.colorbar(sm, ax=g.axes, orientation="vertical", label="completeness")
@@ -87,9 +87,10 @@ sns.scatterplot(
     ax=ax,
     legend=False,
     s=100,
+    alpha=0.8,
+    hue_norm=norm
 )
 
-norm = plt.Normalize(df["completeness"].min(), df["completeness"].max())
 sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
 sm.set_array([])
 fig.colorbar(sm, ax=ax, orientation="vertical", label="completeness")

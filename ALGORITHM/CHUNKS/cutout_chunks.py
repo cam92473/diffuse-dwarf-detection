@@ -47,18 +47,25 @@ def cutout_chunks(data_in_file,weight_in_file,data_out_folder,weight_out_folder,
             draw.text((x[i]/2, im_r.height-y[i]/2), str(i+1), fill=colors[i], font=ImageFont.truetype("Ubuntu-R.ttf", 600))
         im_r.save(jpeg_out_file,"JPEG",quality=85,optimize=True)
 
-    for i in range(28):
+    for i in range(1):
         chunk = f"chunk{i+1}"
         if verbosity > 0:
             print(f"  cutting out {chunk}...")
 
-        data_cutout = Cutout2D(data, position=(x[i],y[i]), size=(5000,6000), wcs=wcs, mode='strict')
+
+        data_cutout = data
+        weight_cutout = weight
+
+        '''data_cutout = Cutout2D(data, position=(x[i],y[i]), size=(5000,6000), wcs=wcs, mode='strict')
         weight_cutout = Cutout2D(weight, position=(x[i],y[i]), size=(5000,6000), wcs=wcs, mode='strict')
 
-        header.update(data_cutout.wcs.to_header())
+        header.update(data_cutout.wcs.to_header())'''
 
-        fits.writeto(data_out_folder/f'{signature}_{chunk}.fits', data_cutout.data, header, overwrite=True)
-        fits.writeto(weight_out_folder/f'{signature}_{chunk}_weight.fits', weight_cutout.data, header, overwrite=True)
+        #data_cutout.data
+        #weight_cutout.data
+
+        fits.writeto(data_out_folder/f'{signature}_{chunk}.fits', data_cutout, header, overwrite=True)
+        fits.writeto(weight_out_folder/f'{signature}_{chunk}_weight.fits', weight_cutout, header, overwrite=True)
 
     t2 = time.perf_counter()
 

@@ -183,9 +183,6 @@ def detect_dwarfs(data, weight, medblur_radius, detect_params, save=False, dirty
     #make_color_cutouts(paths,save,signature,verbosity)
     #CNN
 
-
-       
-
     '''if data.is_file() & weight.is_file():
         gimp_call(data, weight, medblur_radius, paths, save, play_through, signature, verbosity)
         detect_filter(paths["processed_dir"], paths, detect_params, save, play_through, signature, verbosity)

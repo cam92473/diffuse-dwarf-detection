@@ -248,4 +248,4 @@ else:
     from ALGORITHM.IMAGE_PROCESS.gimp_call import gimp_call
     from ALGORITHM.DETECT_FILTER.detect_filter import detect_filter
     from ALGORITHM.SKYCOORD_MASTER_CATALOG.compile_master_catalog import compile_master_catalog
-    from ALGORITHM.CUTOUT_COLOR.make_cutouts import make_cutouts
+    #from ALGORITHM.CUTOUT_COLOR.make_cutouts import make_cutouts

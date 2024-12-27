@@ -1,5 +1,7 @@
 import tensorflow as tf
 import numpy as np
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.metrics import BinaryAccuracy, Precision, Recall
@@ -11,31 +13,7 @@ from PIL import Image
 from pathlib import Path
 import argparse
 
-def configure_paths(dataset_path):
-    TRAIN_CNN_dir = Path.cwd()
-    dataset_dir = dataset_path
-    train_dir = dataset_dir/'train'
-    train_dwarfs_dir = train_dir/'dwarfs'
-    train_nondwarfs_dir = train_dir/'nondwarfs'
-    validate_dir = dataset_dir/'validate'
-    validate_dwarfs_dir = validate_dir/'dwarfs'
-    validate_nondwarfs_dir = validate_dir/'nondwarfs'
-    test_dir = dataset_dir/'test'
-    test_dwarfs_dir = test_dir/'dwarfs'
-    test_nondwarfs_dir = test_dir/'nondwarfs'
-    paths = {"TRAIN_CNN":TRAIN_CNN_dir,
-             "dataset":dataset_dir,
-             "train":train_dir,
-             "train_dwarfs":train_dwarfs_dir,
-             "train_nondwarfs":train_nondwarfs_dir,
-             "validate":validate_dir,
-             "validate_dwarfs":validate_dwarfs_dir,
-             "validate_nondwarfs":validate_nondwarfs_dir,
-             "test":test_dir,
-             "test_dwarfs":test_dwarfs_dir,
-             "test_nondwarfs":test_nondwarfs_dir,
-            }
-    return paths
+
 
 def add_positional_encoding(image, img_size):
     batch_size = tf.shape(image)[0]
@@ -68,94 +46,85 @@ def plot_images(indices, test_generator, title, batch_size):
     plt.suptitle(title)
     plt.show()
 
-def train_CNN(dataset_path,batch_size,num_epochs,model_choice,display):
+def display_batch(generator,batch_size,suptitle):
+    images, labels = next(generator)
+    strlabels = ['dwarf' if i==1 else 'nondwarf' for i in labels]
+    fig, axs = plt.subplots(4,8,figsize=(20, 15))
+    for i in range(batch_size):
+        r, c = i//8, i%8
+        axs[r,c].imshow(images[i].reshape(512, 512), cmap='gray')
+        axs[r,c].set_title(strlabels[i])
+        axs[r,c].axis('off')
+    plt.suptitle(suptitle)
+    plt.show()
 
-    paths = configure_paths(dataset_path)
+def configure_paths(dataset_dir):
+    train_dir = dataset_dir/'train'
+    train_dwarf_dir = train_dir/'dwarf'
+    train_nondwarf_dir = train_dir/'nondwarf'
+    validate_dir = dataset_dir/'validate'
+    validate_dwarf_dir = validate_dir/'dwarf'
+    validate_nondwarf_dir = validate_dir/'nondwarf'
+    test_dir = dataset_dir/'test'
+    test_dwarf_dir = test_dir/'dwarf'
+    test_nondwarf_dir = test_dir/'nondwarf'
+    paths = {"dataset":dataset_dir,
+             "train":train_dir,
+             "train_dwarf":train_dwarf_dir,
+             "train_nondwarf":train_nondwarf_dir,
+             "validate":validate_dir,
+             "validate_dwarf":validate_dwarf_dir,
+             "validate_nondwarf":validate_nondwarf_dir,
+             "test":test_dir,
+             "test_dwarf":test_dwarf_dir,
+             "test_nondwarf":test_nondwarf_dir,
+            }
+    return paths
 
-    with Image.open(next(paths["train_dwarfs"].iterdir())) as im:
-        img_size, _ = im.size
+def train_CNN(dataset_dir,batch_size,num_epochs,display):
 
-    print(f"""
-        dataset: {paths["dataset"]}
-        image dimensions: {img_size}x{img_size}
+    paths = configure_paths(dataset_dir)
 
-        batch size: {batch_size}
-        number of epochs: {num_epochs}
-    """)
+    print(f"dataset: {paths['dataset']}\nbatch size: {batch_size}\nnumber of epochs: {num_epochs}")
 
-    train_datagen = ImageDataGenerator(
-        #preprocessing_function = lambda x: x/65535,
-        #rotation_range=360,
-        #horizontal_flip=True,
-        #vertical_flip=True,
-        #fill_mode='reflect',
-    )
+    train_datagen = ImageDataGenerator()
     validation_datagen = ImageDataGenerator()#preprocessing_function = lambda x: x/65535,)
     test_datagen = ImageDataGenerator()#preprocessing_function = lambda x: x/65535,)
 
     train_generator = train_datagen.flow_from_directory(
         paths["train"],
-        target_size=(img_size, img_size),
+        target_size=(512, 512),
         batch_size=batch_size,
         color_mode='grayscale',
         class_mode='binary',
-        classes=['nondwarfs','dwarfs'],
+        classes=['non_dwarf','dwarf'],
         shuffle=True,
     )
 
     validation_generator = validation_datagen.flow_from_directory(
         paths["validate"],
-        target_size=(img_size, img_size),
+        target_size=(512, 512),
         batch_size=batch_size,
         color_mode='grayscale',
         class_mode='binary',
-        classes=['nondwarfs','dwarfs'],
+        classes=['non_dwarf','dwarf'],
         shuffle=True,
     )
 
     test_generator = test_datagen.flow_from_directory(
         paths["test"],
-        target_size=(img_size, img_size),
+        target_size=(512, 512),
         batch_size=batch_size,
         color_mode='grayscale',
         class_mode='binary',
-        classes=['nondwarfs','dwarfs'],
+        classes=['non_dwarf','dwarf'],
         shuffle=False,
     )
 
     if display:
-        images, labels = next(train_generator)
-        strlabels = ['dwarf' if i==1 else 'nondwarf' for i in labels]
-        plt.figure(figsize=(20, 15))
-        for i in range(batch_size):
-            plt.subplot(4, 8, i + 1)
-            plt.imshow(images[i].reshape(img_size, img_size), cmap='gray')
-            plt.title(strlabels[i])
-            plt.axis('off')
-        plt.suptitle('training batch #0')
-        plt.show()
-
-        images, labels = next(validation_generator)
-        strlabels = ['dwarf' if i==1 else 'nondwarf' for i in labels]
-        plt.figure(figsize=(20, 15))
-        for i in range(batch_size):
-            plt.subplot(4, 8, i + 1)
-            plt.imshow(images[i].reshape(img_size, img_size), cmap='gray')
-            plt.title(strlabels[i])
-            plt.axis('off')
-        plt.suptitle('validation batch #0')
-        plt.show()
-
-        images, labels = next(test_generator)
-        strlabels = ['dwarf' if i==1 else 'nondwarf' for i in labels]
-        plt.figure(figsize=(20, 15))
-        for i in range(batch_size):
-            plt.subplot(4, 8, i + 1)
-            plt.imshow(images[i].reshape(img_size, img_size), cmap='gray')
-            plt.title(strlabels[i])
-            plt.axis('off')
-        plt.suptitle('test batch #0')
-        plt.show()
+        display_batch(train_generator, batch_size, 'train batch #0')
+        display_batch(validation_generator, batch_size, 'validation batch #0')
+        display_batch(test_generator, batch_size, 'test batch #0')
 
     '''model_A = tf.keras.models.Sequential([
         tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(img_size, img_size, 1)),
@@ -173,7 +142,7 @@ def train_CNN(dataset_path,batch_size,num_epochs,model_choice,display):
         tf.keras.layers.Dense(1, activation='sigmoid')
     ])'''
 
-    inputs = tf.keras.layers.Input(shape=(img_size, img_size, 1))
+    '''inputs = tf.keras.layers.Input(shape=(512, 512, 1))
     #x = tf.keras.layers.Lambda(lambda img: add_positional_encoding(img, img_size), output_shape=(img_size, img_size, 3))(inputs)
     x = tf.keras.layers.Conv2D(32, (3, 3), activation='relu')(inputs)
     x = tf.keras.layers.BatchNormalization()(x)
@@ -189,9 +158,23 @@ def train_CNN(dataset_path,batch_size,num_epochs,model_choice,display):
     x = tf.keras.layers.Dropout(0.5)(x)
     outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
     model_A = tf.keras.models.Model(inputs=inputs, outputs=outputs)
+'''
 
-    model_B = tf.keras.models.Sequential([
-        tf.keras.layers.Conv2D(32, (7, 7), activation='relu', input_shape=(img_size, img_size, 1)),
+    model = Sequential([
+        Conv2D(32, (3, 3), activation='relu', input_shape=(512, 512, 1)),
+        MaxPooling2D(pool_size=(2, 2)),
+        Conv2D(64, (3, 3), activation='relu'),
+        MaxPooling2D(pool_size=(2, 2)),
+        Conv2D(128, (3, 3), activation='relu'),
+        MaxPooling2D(pool_size=(2, 2)),
+        Flatten(),
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(1, activation='sigmoid')
+    ])
+
+    '''model = tf.keras.models.Sequential([
+        tf.keras.layers.Conv2D(32, (7, 7), activation='relu', input_shape=(512, 512, 1)),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.MaxPooling2D((2, 2)),
         tf.keras.layers.Conv2D(64, (5, 5), activation='relu'),
@@ -208,16 +191,16 @@ def train_CNN(dataset_path,batch_size,num_epochs,model_choice,display):
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.Dropout(0.5),
         tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
+    ])'''
 
-    model_C = ''
+    '''model_C = ''
 
     if model_choice == 'A':
         model = model_A
     elif model_choice == 'B':
         model = model_B
     elif model_choice == 'C':
-        model = model_C
+        model = model_C'''
 
     optimizer = Adam(learning_rate=0.001)
 
@@ -230,14 +213,20 @@ def train_CNN(dataset_path,batch_size,num_epochs,model_choice,display):
     log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)'''
 
-    lr_scheduler = LearningRateScheduler(step_decay)
+    #lr_scheduler = LearningRateScheduler(step_decay)
 
-    model.fit(
+    history = model.fit(
+    train_generator,
+    epochs=num_epochs,
+    validation_data=validation_generator,
+    )
+
+    '''model.fit(
     train_generator,
     validation_data=validation_generator,
     epochs=num_epochs,
     callbacks=[lr_scheduler]
-    )
+    )'''
 
     model.save('CNNmodel.keras')
 
@@ -264,14 +253,14 @@ if __name__ == '__main__':
     parser.add_argument('dataset_path', help='Path to the dataset folder containing the train/validate/test data.')
     parser.add_argument('batch_size', type=int, help='Batch size used to train the CNN.')
     parser.add_argument('num_epochs', type=int, help='Number of epochs used to train the CNN.')
-    parser.add_argument('-model', choices=['A','B','C'], default='A', help='Model to use for training. Choose A, B, or C.')
+    #parser.add_argument('-model', choices=['A','B','C'], default='A', help='Model to use for training. Choose A, B, or C.')
     parser.add_argument('--display', action='store_true', default=False, help='Displays plots showing the batch cutouts used for training.')
 
     args = parser.parse_args()
     dataset_path = Path(args.dataset_path).resolve()
     batch_size = args.batch_size
     num_epochs = args.num_epochs
-    model_choice = args.model
+    #model_choice = args.model
     display = args.display
 
-    train_CNN(dataset_path,batch_size,num_epochs,model_choice,display)
+    train_CNN(dataset_path,batch_size,num_epochs,display)

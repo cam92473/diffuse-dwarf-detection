@@ -94,7 +94,7 @@ class NoisyLine():
         self.noisylog10reffpc = log10reffpc + self._generate_noise(num_dwarfs, reff_ul, log10reffpc.max())
         reffpc = 10**(self.noisylog10reffpc)
         reffas = reffpc/3.8E6*206265
-        self.reffpix = reffas/0.263/1.5
+        self.reffpix = reffas/0.263
         return self.reffpix
 
 def get_reffs(num_dwarfs, absolute_mag, reff_ul, decrease_reff):

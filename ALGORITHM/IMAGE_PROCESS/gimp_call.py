@@ -35,14 +35,14 @@ def create_signature(data_file,signature):
         signature = f"{data_file.stem}_{timestr}"
     return signature
 
-def gimp_call(data_file, weight_file, processed_file, save_dir, gimpproc_dir, medblur_radius, name="", save=False, play_through=False, signature=None, verbosity=1):
+def gimp_call(data_file, processed_file, save_dir, gimpproc_dir, medblur_radius, name="", save=False, play_through=False, signature=None, verbosity=1):
     t1 = time.perf_counter()
     if verbosity > 0:
         print(f"  Image processing{name}...")
 
     signature = create_signature(data_file,signature)
     switch, stdout, stderr = configure_bash(play_through,verbosity)
-    python_fu_import_script = f"import sys; sys.path=['.']+sys.path; from gimp_procedure import gimp_procedure; gimp_procedure('{data_file}','{weight_file}','{processed_file}','{save_dir}',{medblur_radius},{save},{play_through},'{signature}',{verbosity})"
+    python_fu_import_script = f"import sys; sys.path=['.']+sys.path; from gimp_procedure import gimp_procedure; gimp_procedure('{data_file}','{processed_file}','{save_dir}',{medblur_radius},{save},{play_through},'{signature}',{verbosity})"
     subprocess.run(f"flatpak run org.gimp.GIMP {switch} --batch-interpreter python-fu-eval -b \"{python_fu_import_script}\"", cwd=gimpproc_dir, shell=True, stdout=stdout, stderr=stderr)
     restock_WCS(processed_file,data_file,verbosity)
 
@@ -54,7 +54,6 @@ def gimp_call(data_file, weight_file, processed_file, save_dir, gimpproc_dir, me
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('data_file', help='Data image.')
-    parser.add_argument('weight_file', help='Weight image.')
     parser.add_argument('processed_file', help='Final processed fits file.')
     parser.add_argument('save_dir', help='Directory to save jpegs to.')
     parser.add_argument('gimpproc_dir', help='Directory containing the gimp_procedure.py module.')
